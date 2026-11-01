@@ -1,1 +1,443 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Heatmap des indices US en direct</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#0c0f15;--surface:#141922;--raised:#1b2230;--line:#262e3d;--ink:#e7eaf0;--mute:#8d97aa;--accent:#7aa7ff;--on:#0b1226;color-scheme:dark;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root{--bg:#f3f5f8;--surface:#fff;--raised:#eef1f6;--line:#dde2ea;--ink:#141a26;--mute:#5d6880;--accent:#2f5fd0;--on:#fff;color-scheme:light}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans","Segoe UI",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+main{max-width:1500px;margin:0 auto;padding:20px 20px 48px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:1.35rem;font-weight:600;letter-spacing:-.01em;margin:0}
+.sub{color:var(--mute);font-size:.88rem;margin:2px 0 0}
+.actions{display:flex;align-items:center;gap:10px}
+#last{color:var(--mute);font-size:.85rem}
+button{font:inherit;font-weight:500;padding:8px 16px;border:0;border-radius:6px;background:var(--accent);color:var(--on);cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}
+button.ghost{background:transparent;color:var(--mute);border:1px solid var(--line)}
+button.icon{padding:8px 10px;line-height:0}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:14px}
+.budget{display:flex;gap:6px 18px;align-items:center;flex-wrap:wrap;font-size:.85rem;color:var(--mute);padding:10px 14px}
+.budget b{color:var(--ink);font-weight:500}
+.bb{height:4px;background:var(--raised);border-radius:2px;flex:1 1 120px;min-width:100px}
+.bb i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px}
+#msg{min-height:0;margin:0 0 10px;font-size:.9rem;color:var(--mute)}
+#msg.err{color:#ef5a5d}
+#msg:empty{display:none}
+.verdict{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.badge{font-size:1.25rem;font-weight:600;padding:8px 16px;border-radius:6px;color:#fff}
+.v-tm{background:#f63538}.v-m{background:#bf4045}.v-n{background:#414554}.v-b{background:#2f9e4f}.v-tb{background:#30a851}
+.big{font-size:1.8rem;font-weight:600;line-height:1.1}
+#expl{color:var(--mute);font-size:.9rem;max-width:90ch}
+.bar{display:flex;height:22px;border-radius:5px;overflow:hidden;margin-top:14px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
+.tabs button{background:none;color:var(--mute);border-radius:0;border-bottom:2px solid transparent;padding:10px 16px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--mute);font-weight:500}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.kpi{background:var(--raised);border-radius:6px;padding:12px}
+.kpi small{display:block;color:var(--mute)}
+.kpi b{font-size:1.25rem;font-weight:600}
+#kpis:empty::before{content:"Aucune donnée pour l’instant.";color:var(--mute)}
+.wrap{overflow-x:auto}
+#mapcard:fullscreen{background:var(--bg);padding:16px;overflow:auto}
+#legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.82rem;color:var(--mute)}
+#map{position:relative;width:100%;min-height:420px;background:#0d1016;border-radius:6px;overflow:hidden}
+#map:empty{display:flex;align-items:center;justify-content:center;color:#8b92a5;text-align:center;padding:16px}
+#map:empty::before{content:"La heatmap du Nasdaq 100 s’affichera ici après l’actualisation."}
+.t{position:absolute;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:600;line-height:1.15;box-shadow:inset 0 0 0 1px #0d1016;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.t span{font-weight:400;font-size:.85em}
+.sl{position:absolute;font-size:11px;line-height:15px;padding:0 4px;color:#cfd3dd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pos{color:#34b765}.neg{color:#ef5a5d}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:22px;width:min(460px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+dialog h2{margin:0 0 14px;font-size:1.1rem;font-weight:600}
+dialog label{display:block;font-size:.85rem;color:var(--mute);margin-bottom:12px}
+dialog input,dialog select{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+.hint{font-size:.82rem;color:var(--mute);margin:-6px 0 12px}
+details{font-size:.88rem;margin:4px 0 16px}
+summary{cursor:pointer;color:var(--accent)}
+details a{color:var(--accent)}
+.drow{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div><h1>Heatmap des indices US en direct</h1><p class="sub">Nasdaq 100 : variations réelles classées selon l’échelle de couleurs Finviz.</p></div>
+  <div class="actions">
+    <span id="last"></span>
+    <button id="go">Actualiser</button>
+    <button id="cfg" class="ghost icon" aria-label="Réglages" title="Réglages"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+</header>
 
+<div class="card budget"><span id="bt"></span><div class="bb"><i id="bf"></i></div><span id="bs"></span></div>
+<p id="msg"></p>
+
+<div id="out" hidden>
+  <div class="card">
+    <div class="verdict"><div id="badge" class="badge"></div><div><div class="big" id="score"></div><div id="expl"></div></div></div>
+    <div class="bar" id="bar"></div>
+  </div>
+</div>
+
+<div class="tabs" role="tablist">
+  <button data-tab="map" aria-selected="true" role="tab">Heatmap</button>
+  <button data-tab="metrics" aria-selected="false" role="tab">Indicateurs</button>
+  <button data-tab="sectors" aria-selected="false" role="tab">Secteurs</button>
+  <button data-tab="method" aria-selected="false" role="tab">Méthode</button>
+</div>
+
+<section class="panel" id="tab-map">
+  <div class="card" id="mapcard">
+    <div class="drow" style="margin-bottom:10px;align-items:center">
+      <div><b>Heatmap du Nasdaq 100</b><div class="sub">Taille : capitalisation. Couleur : variation du jour.</div></div>
+      <button id="fs" type="button" class="ghost">Plein écran</button>
+    </div>
+    <div id="map"></div>
+    <div id="legend"></div>
+  </div>
+</section>
+
+<section class="panel" id="tab-metrics" hidden>
+  <div class="card grid" id="kpis"></div>
+  <div class="card wrap"><table><thead><tr><th>Palier</th><th>Poids (capitalisation)</th><th>Nombre d’actions</th></tr></thead><tbody id="rows"></tbody></table></div>
+</section>
+
+<section class="panel" id="tab-sectors" hidden>
+  <div class="card wrap"><table><thead><tr><th>Secteur</th><th>Variation pondérée</th><th>Poids dans l’indice</th></tr></thead><tbody id="sect"></tbody></table></div>
+</section>
+
+<section class="panel" id="tab-method" hidden>
+  <div class="card wrap">
+    <table><thead><tr><th>Verdict</th><th>Score final</th></tr></thead><tbody>
+      <tr><td>Très mauvais</td><td>≤ −1,2</td></tr><tr><td>Mauvais</td><td>−1,2 à −0,4</td></tr><tr><td>Normal</td><td>−0,4 à +0,4</td></tr><tr><td>Bien</td><td>+0,4 à +1,2</td></tr><tr><td>Très bien</td><td>≥ +1,2</td></tr>
+    </tbody></table>
+    <p class="sub" style="max-width:80ch;margin-top:12px">Chaque variation est plafonnée à ±3 % (échelle Finviz) pour qu’une valeur extrême ne fausse pas le score. Score final = 60 % du score pondéré par la capitalisation (ce que fait l’indice) + 40 % du score égal-pondéré (participation de l’ensemble des actions). Une divergence entre les deux est signalée. Si moins de 90 % des actions du Nasdaq 100 sont reçues, aucun verdict n’est donné. Les deux lignes d’Alphabet se partagent la capitalisation de l’entreprise pour éviter un double comptage. Les seuils sont des repères non validés statistiquement.</p>
+  </div>
+</section>
+</main>
+
+<dialog id="dlg">
+  <form method="dialog">
+    <h2>Réglages</h2>
+    <label>Fournisseur de données
+      <select id="prov"><option value="finnhub">Finnhub</option><option value="fmp">Financial Modeling Prep</option></select>
+    </label>
+    <label>Clé API
+      <input id="key" type="password" autocomplete="off" placeholder="Collez votre clé">
+    </label>
+    <label>Limite d’appels par jour
+      <input id="lim" type="number" min="1">
+    </label>
+    <p class="hint" data-p="finnhub">Finnhub : 300 appels par jour supposés (non confirmé). Le compteur est local et repart à zéro à minuit, heure de votre appareil.</p>
+    <p class="hint" data-p="fmp">FMP : 250 appels par jour en offre gratuite. Le compteur est local et repart à zéro à minuit, heure de votre appareil.</p>
+    <details>
+      <summary>Clé oubliée ?</summary>
+      <div data-p="finnhub"><p>Connectez-vous sur <a href="https://finnhub.io/dashboard" target="_blank" rel="noopener">finnhub.io/dashboard</a> : votre clé API y est affichée. Mot de passe perdu : utilisez le lien de réinitialisation de la page de connexion.</p></div>
+      <div data-p="fmp"><p>Connectez-vous sur <a href="https://site.financialmodelingprep.com/developer/docs/dashboard" target="_blank" rel="noopener">votre tableau de bord FMP</a>, puis ouvrez « Clés API » dans le menu de gauche. Mot de passe perdu : utilisez le lien de réinitialisation de la page de connexion.</p></div>
+    </details>
+    <div class="drow">
+      <button type="button" id="reset" class="ghost">Oublier les tickers refusés</button>
+      <button value="ok">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const PAL=[
+ {k:-3,n:"−3 % et moins",c:"#f63538"},{k:-2,n:"−2 %",c:"#bf4045"},{k:-1,n:"−1 %",c:"#8b444e"},
+ {k:0,n:"0 %",c:"#414554"},
+ {k:1,n:"+1 %",c:"#35764e"},{k:2,n:"+2 %",c:"#2f9e4f"},{k:3,n:"+3 % et plus",c:"#30cc5a"}
+];
+const API="https://financialmodelingprep.com/stable/";
+const $=id=>document.getElementById(id);
+const fmt=(v,d=1)=>v.toFixed(d).replace(".",",");
+const sg=(v,d=2)=>(v>0?"+":"")+fmt(v,d);
+let key="",calls=0,timer=null,uni=null,caps={};
+
+const prov=()=>$("prov").value;
+const KEYN={finnhub:"key_finnhub",fmp:"fmpkey"};
+try{$("prov").value=localStorage.getItem("prov")||"finnhub"}catch(e){}
+function loadKey(){try{$("key").value=localStorage.getItem(KEYN[prov()])||""}catch(e){}}
+loadKey();
+$("prov").onchange=()=>{try{localStorage.setItem("prov",prov())}catch(e){}loadKey();setMsg("");syncProv()};
+
+const NDX={
+"Technologie":"AAPL,MSFT,NVDA,AVGO,AMD,CSCO,ASML,INTU,QCOM,ADBE,TXN,ARM,AMAT,PANW,ADI,CRWD,APP,LRCX,MU,KLAC,INTC,SNPS,CDNS,WDAY,FTNT,MRVL,ADSK,NXPI,ROP,DDOG,TEAM,ZS,MDB,ON,MCHP,PLTR,CDW,GFS,CTSH,SHOP,TTD,MSTR",
+"Communication":"GOOGL,GOOG,META,NFLX,TMUS,CMCSA,CHTR,EA,TTWO,WBD",
+"Consommation cyclique":"AMZN,TSLA,BKNG,SBUX,MELI,DASH,ABNB,ORLY,MAR,ROST,LULU,PDD",
+"Consommation de base":"COST,PEP,MDLZ,KDP,KHC,MNST,CCEP,DLTR",
+"Santé":"AZN,ISRG,AMGN,GILD,VRTX,REGN,IDXX,DXCM,BIIB,GEHC,ILMN",
+"Industrie":"HON,ADP,CTAS,CSX,PCAR,FAST,CPRT,ODFL,VRSK,AXON,PAYX,TRI",
+"Énergie":"BKR,FANG",
+"Services aux collectivités":"AEP,XEL,EXC,CEG",
+"Matériaux":"LIN",
+"Immobilier":"CSGP",
+"Finance":"PYPL"
+};
+let lastReq=0;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function fh(path){
+ for(let a=0;a<3;a++){
+  const wait=lastReq+1100-Date.now(); if(wait>0) await sleep(wait);
+  lastReq=Date.now();
+  bump();const r=await fetch("https://finnhub.io/api/v1/"+path+(path.includes("?")?"&":"?")+"token="+encodeURIComponent(key));
+  if(r.status===429){await sleep(15000);continue}
+  if(r.status===401) throw new Error("Clé Finnhub refusée (code 401).");
+  if(r.status===403) return null;
+  if(!r.ok) throw new Error("Erreur HTTP "+r.status);
+  return r.json();
+ }
+ throw new Error("Limite d’appels Finnhub atteinte. Réessayez dans quelques minutes.");
+}
+async function quotesFH(syms){
+ const q={};let capsC={};
+ try{capsC=JSON.parse(localStorage.getItem("fhcaps")||"{}")}catch(e){}
+ let n=0;
+ for(const s of syms){
+  setMsg(`Finnhub : cotation ${++n}/${syms.length}…`);
+  try{const r=await fh("quote?symbol="+s);if(r&&r.c&&typeof r.dp==="number")q[s]={changePercentage:r.dp,marketCap:0}}
+  catch(e){if(/refusée|Limite/.test(e.message))throw e}
+ }
+ if(!Object.keys(q).length) throw new Error("Aucune cotation reçue de Finnhub.");
+ const miss=Object.keys(q).filter(s=>!(capsC[s]&&Date.now()-capsC[s].t<7*864e5));
+ let i=0;
+ for(const s of miss){
+  setMsg(`Finnhub : capitalisation ${++i}/${miss.length} (une seule fois, puis mise en mémoire)…`);
+  try{const p=await fh("stock/profile2?symbol="+s);if(p&&p.marketCapitalization)capsC[s]={v:p.marketCapitalization*1e6,t:Date.now()}}
+  catch(e){if(/refusée|Limite/.test(e.message))break}
+ }
+ try{localStorage.setItem("fhcaps",JSON.stringify(capsC))}catch(e){}
+ for(const s in q) if(capsC[s]) q[s].marketCap=capsC[s].v;
+ return q;
+}
+let singleMode=false,denied=new Set();
+try{singleMode=localStorage.getItem("fmpsingle")==="1";denied=new Set(JSON.parse(localStorage.getItem("fmpdenied")||"[]"))}catch(e){}
+const saveDenied=()=>{try{localStorage.setItem("fmpdenied",JSON.stringify([...denied]));localStorage.setItem("fmpsingle",singleMode?"1":"0")}catch(e){}};
+async function quotes(syms){
+ const q={};
+ if(!singleMode){
+  try{
+   for(const part of chunk(syms,100)){
+    const rows=await get("batch-quote?symbols="+part.join(","));
+    rows.forEach(r=>q[r.symbol]=r);
+   }
+   return q;
+  }catch(e){ if(!/402/.test(e.message)) throw e; singleMode=true;saveDenied(); }
+ }
+ setMsg("Offre limitée : cotations récupérées une par une, patientez…");
+ let lastErr=null;
+ const todo=syms.filter(s=>!denied.has(s));
+ for(let i=0;i<todo.length;i+=5){
+  await Promise.all(todo.slice(i,i+5).map(async s=>{
+   try{const r=await get("quote?symbol="+s);if(r&&r[0])q[s]=r[0]}
+   catch(e){
+    if(/402/.test(e.message)) denied.add(s);
+    else if(/Limite|clé|Clé/.test(e.message)) throw e;
+    else lastErr=e;
+   }
+  }));
+ }
+ saveDenied();
+ if(!Object.keys(q).length&&lastErr) throw lastErr;
+ if(!Object.keys(q).length) throw new Error("Aucune action n’est accessible avec votre offre FMP.");
+ return q;
+}
+async function get(path){
+ bump();const r=await fetch(API+path+(path.includes("?")?"&":"?")+"apikey="+encodeURIComponent(key));
+ if(r.status===401||r.status===403) throw new Error("Clé refusée par l’API (code "+r.status+").");
+ if(r.status===402) throw new Error("Ce point d’accès n’est pas inclus dans votre offre FMP (code 402).");
+ if(r.status===429) throw new Error("Limite d’appels atteinte. Réessayez plus tard.");
+ if(!r.ok) throw new Error("Erreur HTTP "+r.status);
+ const j=await r.json(); calls++;
+ if(j&&!Array.isArray(j)&&(j["Error Message"]||j.message)) throw new Error(j["Error Message"]||j.message);
+ return j;
+}
+const chunk=(a,n)=>Array.from({length:Math.ceil(a.length/n)},(_,i)=>a.slice(i*n,i*n+n));
+
+let busy=false,nextAt=0;
+async function refresh(){
+ if(busy)return;
+ key=$("key").value.trim();
+ if(!key){setMsg("Clé API manquante.",1);return}
+ try{localStorage.setItem(KEYN[prov()],key)}catch(e){}
+ if(usage()+costEst()>limit()&&!confirm(`Budget du jour : ${usage()} appels utilisés sur ${limit()}. Cette actualisation coûte environ ${costEst()} appels et dépasserait la limite. Continuer quand même ?`))return;
+ busy=true;$("go").disabled=true; setMsg("Chargement des données…");
+ const before=calls;
+ try{
+  if(!uni) uni=Object.entries(NDX).flatMap(([sector,s])=>s.split(",").map(symbol=>({symbol,sector})));
+  const syms=uni.map(u=>u.symbol);
+  const q=await (prov()==="finnhub"?quotesFH(syms):quotes(syms));
+  const need=syms.filter(s=>q[s]&&!caps[s]&&!q[s].marketCap);
+  for(const part of chunk(need,100)){
+   try{const rows=await get("market-capitalization-batch?symbols="+part.join(","));rows.forEach(r=>caps[r.symbol]=r.marketCap)}catch(e){break}
+  }
+  const data=[];
+  for(const u of uni){
+   const r=q[u.symbol]; if(!r) continue;
+   const ch=r.changePercentage??r.changesPercentage;
+   if(typeof ch!=="number") continue;
+   const cap=r.marketCap||caps[u.symbol]||0;
+   data.push({s:u.symbol,sector:u.sector||"Autres",ch,cap});
+  }
+  if(!data.length) throw new Error("Aucune variation reçue. Vérifiez votre offre FMP.");
+  const noCap=data.every(d=>!d.cap);
+  if(noCap) data.forEach(d=>d.cap=1);
+  render(data,noCap,uni.length);
+  $("last").textContent="Mise à jour à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  setMsg(noCap?"Capitalisations indisponibles : toutes les actions ont la même taille.":"");
+  if(prov()==='fmp'&&singleMode)setMsg(`Offre limitée : ${denied.size} actions refusées par FMP sont ignorées pour économiser votre quota (environ ${data.length} appels par actualisation).`)
+ }catch(e){
+  const net=e instanceof TypeError;
+  setMsg(e.message+(net?" (réseau ou CORS : essayez d’ouvrir la page via un petit serveur local)":""),1);
+ }
+ busy=false;$("go").disabled=false;updateBudget();
+}
+function setMsg(t,err){$("msg").textContent=t;$("msg").className=err?"err":""}
+
+const CFG={wCap:0.6,wEq:0.4,clamp:3,cuts:[-1.2,-0.4,0.4,1.2],minCoverage:0.9};
+const NAMES=["Très mauvais","Mauvais","Normal","Bien","Très bien"],CLS=["v-tm","v-m","v-n","v-b","v-tb"];
+function render(data,noCap,total){
+ const g1=data.find(d=>d.s==="GOOGL"),g2=data.find(d=>d.s==="GOOG");
+ if(g1&&g2&&g1.cap&&g2.cap&&Math.abs(g1.cap-g2.cap)/Math.max(g1.cap,g2.cap)<0.1){g1.cap/=2;g2.cap/=2}
+ const C=CFG.clamp,cl=v=>Math.max(-C,Math.min(C,v));
+ const T=data.reduce((a,d)=>a+d.cap,0),N=data.length;
+ const capScore=data.reduce((a,d)=>a+cl(d.ch)*d.cap,0)/T;
+ const eqScore=data.reduce((a,d)=>a+cl(d.ch),0)/N;
+ const idx=data.reduce((a,d)=>a+d.ch*d.cap,0)/T;
+ const S=CFG.wCap*capScore+CFG.wEq*eqScore;
+ const w=new Array(7).fill(0),n=new Array(7).fill(0),sec={};
+ let adv=0,dec=0,advCap=0;
+ for(const d of data){
+  const k=Math.max(-3,Math.min(3,Math.round(d.ch)))+3;
+  w[k]+=d.cap;n[k]++;
+  if(d.ch>0){adv++;advCap+=d.cap}else if(d.ch<0)dec++;
+  const x=sec[d.sector]=sec[d.sector]||{c:0,v:0};x.c+=d.cap;x.v+=d.ch*d.cap;
+ }
+ const pct=w.map(v=>v/T*100);
+ const red=pct[0]+pct[1]+pct[2],grey=pct[3],green=pct[4]+pct[5]+pct[6];
+ const top10=[...data].sort((a,b)=>b.cap-a.cap).slice(0,10).reduce((a,d)=>a+d.cap,0)/T*100;
+ const cov=N/total,ok=cov>=CFG.minCoverage,K=CFG.cuts;
+ const lvl=S<=K[0]?0:S<K[1]?1:S<=K[2]?2:S<K[3]?3:4;
+ let note="";
+ if(Math.sign(capScore)!==Math.sign(eqScore)&&Math.abs(capScore)>0.2&&Math.abs(eqScore)>0.2)
+  note=capScore>0?" Attention : la hausse est portée par les grosses capitalisations, l’action moyenne recule.":" Attention : la baisse est portée par les grosses capitalisations, l’action moyenne progresse.";
+ $("badge").textContent=ok?NAMES[lvl]:"Données incomplètes";
+ $("badge").className="badge "+(ok?CLS[lvl]:"v-n");
+ $("score").textContent="Score "+sg(S);
+ $("expl").textContent=`${fmt(green)} % de vert, ${fmt(red)} % de rouge, ${fmt(grey)} % de gris (poids en capitalisation).`+(ok?note:` Seulement ${N} actions sur ${total} reçues : le verdict indicatif serait « ${NAMES[lvl]} » mais il n’est pas fiable.`);
+ $("bar").innerHTML=PAL.map((p,j)=>`<div title="${p.n} : ${fmt(pct[j])} %" style="width:${pct[j]}%;background:${p.c}"></div>`).join("");
+ $("kpis").innerHTML=[
+  ["Variation de l’indice (pondérée)",sg(idx)+" %"],
+  ["Score capitalisation",sg(capScore)],
+  ["Score égal-pondéré",sg(eqScore)],
+  ["Hausses / baisses",adv+" / "+dec],
+  ["Poids en hausse",fmt(advCap/T*100)+" %"],
+  ["Poids des 10 premières",fmt(top10)+" %"],
+  ["Couverture",N+" / "+total+" ("+fmt(cov*100,0)+" %)"]
+ ].map(k=>`<div class="kpi"><small>${k[0]}</small><b>${k[1]}</b></div>`).join("");
+ $("rows").innerHTML=PAL.map((p,j)=>`<tr><td><span class="sw" style="background:${p.c}"></span>${p.n}</td><td>${fmt(pct[j])} %</td><td>${n[j]}</td></tr>`).join("");
+ $("sect").innerHTML=Object.entries(sec).sort((a,b)=>b[1].c-a[1].c).map(([s,x])=>{
+  const v=x.v/x.c;return `<tr><td>${s}</td><td class="${v>0?"pos":v<0?"neg":""}">${sg(v)} %</td><td>${fmt(x.c/T*100)} %</td></tr>`}).join("");
+ $("out").hidden=false;
+ lastData=data;drawMap();
+}
+
+let lastData=null;
+function squarify(items,x,y,w,h){
+ const out=[],rest=items.slice();
+ while(rest.length&&w>0.5&&h>0.5){
+  const sh=Math.min(w,h);
+  const worst=(r,s)=>{const a=r.map(i=>i.a),mx=Math.max(...a),mn=Math.min(...a);return Math.max(sh*sh*mx/(s*s),s*s/(sh*sh*mn))};
+  let row=[],sum=0,wr=Infinity;
+  while(rest.length){
+   const nr=row.concat(rest[0]),ns=sum+rest[0].a,nw=worst(nr,ns);
+   if(row.length&&nw>wr)break;
+   row=nr;sum=ns;wr=nw;rest.shift();
+  }
+  const th=sum/sh;let off=0;
+  if(w>=h){for(const i of row){const hh=i.a/th;out.push({i,x,y:y+off,w:th,h:hh});off+=hh}x+=th;w-=th}
+  else{for(const i of row){const ww=i.a/th;out.push({i,x:x+off,y,w:ww,h:th});off+=ww}y+=th;h-=th}
+ }
+ return out;
+}
+function layout(items,x,y,w,h){
+ const tot=items.reduce((a,i)=>a+i.v,0);
+ items.forEach(i=>i.a=i.v/tot*w*h);
+ return squarify(items.sort((a,b)=>b.v-a.v),x,y,w,h);
+}
+function drawMap(){
+ if(!lastData)return;
+ const m=$("map"),W=m.clientWidth||800,H=document.fullscreenElement===$("mapcard")?Math.max(400,innerHeight-130):Math.max(560,Math.min(950,Math.round(W*0.6)));
+ m.style.height=H+"px";
+ const by={};
+ lastData.forEach(d=>{(by[d.sector]=by[d.sector]||{n:d.sector,v:0,st:[]});by[d.sector].v+=d.cap;by[d.sector].st.push({v:d.cap,d})});
+ let html="";
+ for(const s of layout(Object.values(by),0,0,W,H)){
+  const hasLbl=s.w>50&&s.h>40,top=hasLbl?15:0;
+  if(hasLbl)html+=`<div class="sl" style="left:${s.x}px;top:${s.y}px;width:${s.w}px">${s.i.n}</div>`;
+  const stocks=layout(s.i.st,s.x+1,s.y+top+1,Math.max(1,s.w-2),Math.max(1,s.h-top-2));
+  for(const t of stocks){
+   const d=t.i.d,k=Math.max(-3,Math.min(3,Math.round(d.ch)))+3;
+   let inner="";
+   if(t.w>22&&t.h>13){
+    const fs=Math.max(7,Math.min(26,Math.min(t.w/(d.s.length*0.62),t.h/2.4)));
+    inner=`<div style="font-size:${fs}px">${d.s}${t.h>fs*2.6&&t.w>fs*3?`<br><span>${sg(d.ch)} %</span>`:""}</div>`;
+   }
+   html+=`<div class="t" title="${d.s} · ${d.sector} · ${sg(d.ch)} %" style="left:${t.x}px;top:${t.y}px;width:${t.w}px;height:${t.h}px;background:${PAL[k].c}">${inner}</div>`;
+  }
+ }
+ m.innerHTML=html;
+}
+window.addEventListener("resize",()=>{clearTimeout(window._rz);window._rz=setTimeout(drawMap,150)});
+
+$("go").onclick=refresh;
+$("reset").onclick=()=>{denied.clear();singleMode=false;try{localStorage.removeItem("fmpdenied");localStorage.removeItem("fmpsingle")}catch(e){}setMsg("Liste réinitialisée : la prochaine actualisation testera de nouveau toutes les actions.")};
+$("legend").innerHTML=PAL.map(p=>`<span><span class="sw" style="background:${p.c}"></span>${p.n}</span>`).join("");
+$("fs").onclick=()=>{const c=$("mapcard");document.fullscreenElement?document.exitFullscreen():(c.requestFullscreen&&c.requestFullscreen())};
+document.addEventListener("fullscreenchange",()=>setTimeout(drawMap,100));
+
+const UNI_N=Object.values(NDX).reduce((a,x)=>a+x.split(",").length,0);
+const DEF={finnhub:300,fmp:250};
+const today=()=>new Date().toLocaleDateString("fr-CA");
+function limit(){try{return +localStorage.getItem("lim_"+prov())||DEF[prov()]}catch(e){return DEF[prov()]}}
+function usage(){try{const o=JSON.parse(localStorage.getItem("calls_"+prov())||"{}");return o.d===today()?o.n:0}catch(e){return 0}}
+function bump(){try{localStorage.setItem("calls_"+prov(),JSON.stringify({d:today(),n:usage()+1}))}catch(e){}}
+function costEst(){
+ if(prov()==="finnhub"){let c=0;try{c=Object.keys(JSON.parse(localStorage.getItem("fhcaps")||"{}")).length}catch(e){}return UNI_N+Math.max(0,UNI_N-c)}
+ return (singleMode||denied.size)?Math.max(1,UNI_N-denied.size):UNI_N;
+}
+function updateBudget(){
+ const L=limit(),u=usage(),c=costEst(),per=Math.floor(L*0.85/c),rest=Math.max(0,Math.floor((L-u)/c));
+ $("bt").textContent=`Appels aujourd’hui : ${u} / ${L}`;
+ $("bs").textContent=per>0?`Conseil : ${per} actualisation${per>1?"s":""} par jour au maximum (environ ${c} appels chacune, marge de 15 %). Reste aujourd’hui : ${rest}.`:`Une actualisation (environ ${c} appels) dépasse votre limite journalière. Relevez-la dans les réglages ou changez de fournisseur.`;
+ $("bf").style.width=Math.min(100,u/L*100)+"%";
+}
+function syncProv(){
+ document.querySelectorAll("[data-p]").forEach(e=>e.hidden=e.dataset.p!==prov());
+ $("lim").value=limit();updateBudget();
+}
+$("lim").onchange=()=>{try{localStorage.setItem("lim_"+prov(),String(Math.max(1,+$("lim").value||DEF[prov()])))}catch(e){}updateBudget()};
+$("key").onchange=()=>{try{localStorage.setItem(KEYN[prov()],$("key").value.trim())}catch(e){}};
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x===b));
+ document.querySelectorAll(".panel").forEach(pn=>pn.hidden=pn.id!=="tab-"+b.dataset.tab);
+ if(b.dataset.tab==="map")drawMap();
+});
+$("cfg").onclick=()=>$("dlg").showModal();
+syncProv();
+if(!$("key").value)$("dlg").showModal();
+</script>
+</body>
+</html>
