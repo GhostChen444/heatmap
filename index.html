@@ -53,7 +53,7 @@ th{color:var(--mute);font-weight:500}
 #legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.82rem;color:var(--mute)}
 #map{position:relative;width:100%;min-height:420px;background:#0d1016;border-radius:6px;overflow:hidden}
 #map:empty{display:flex;align-items:center;justify-content:center;color:#8b92a5;text-align:center;padding:16px}
-#map:empty::before{content:"La heatmap du Nasdaq 100 s’affichera ici après l’actualisation."}
+#map:empty::before{content:"Aucune heatmap enregistrée sur cet appareil. Saisissez votre phrase secrète (Réglages) pour récupérer la dernière heatmap, ou cliquez sur Actualiser."}
 .t{position:absolute;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:600;line-height:1.15;box-shadow:inset 0 0 0 1px #0d1016;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 .t span{font-weight:400;font-size:.85em}
 .sl{position:absolute;font-size:11px;line-height:15px;padding:0 4px;color:#cfd3dd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -64,6 +64,9 @@ dialog h2{margin:0 0 14px;font-size:1.1rem;font-weight:600}
 dialog label{display:block;font-size:.85rem;color:var(--mute);margin-bottom:12px}
 dialog input,dialog select{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
 .hint{font-size:.82rem;color:var(--mute);margin:-6px 0 12px}
+.qa{margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-left:3px solid #e0a43a;border-radius:6px;background:var(--surface);font-size:.88rem;line-height:1.45}
+.qa b{font-weight:600}
+button:disabled.blk{cursor:not-allowed}
 details{font-size:.88rem;margin:4px 0 16px}
 summary{cursor:pointer;color:var(--accent)}
 details a{color:var(--accent)}
@@ -80,12 +83,13 @@ dialog textarea{display:block;width:100%;margin:4px 0 8px;padding:9px 10px;borde
   <div><h1>Heatmap des indices US en direct</h1><p class="sub">Nasdaq 100 : variations réelles classées selon l’échelle de couleurs Finviz.</p></div>
   <div class="actions">
     <span id="last"></span>
-    <button id="go">Actualiser</button>
+    <button id="go">Actualiser la heatmap</button>
     <button id="cfg" class="ghost icon" aria-label="Réglages" title="Réglages"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
 </header>
 
 <div class="card budget"><span id="bt"></span><div class="bb"><i id="bf"></i></div><span id="bs"></span></div>
+<p id="qa" class="qa" hidden></p>
 <p id="msg"></p>
 
 <div id="out" hidden>
@@ -120,10 +124,10 @@ dialog textarea{display:block;width:100%;margin:4px 0 8px;padding:9px 10px;borde
       <div><b>Calendrier des résultats : Nasdaq 100</b><div class="sub" id="calt"></div></div>
       <div class="cnav">
         <button class="ghost" data-m="m-1">‹ Mois</button><button class="ghost" data-m="w-1">‹ Semaine</button><button class="ghost" data-m="t">Aujourd’hui</button><button class="ghost" data-m="w1">Semaine ›</button><button class="ghost" data-m="m1">Mois ›</button>
-        <input type="date" id="cald" aria-label="Aller à une date"><select id="calv" aria-label="Vue"><option value="week">Semaine</option><option value="month">Mois</option></select>
+        <input type="date" id="cald" aria-label="Aller à une date"><select id="calv" aria-label="Vue"><option value="week">Semaine</option><option value="month">Mois</option></select><button id="calgo" type="button">Actualiser</button>
       </div>
     </div>
-    <p class="sub" id="cals"></p><p class="sub" id="calm"></p>
+    <p class="qa" id="calq" hidden></p><p class="sub" id="cals"></p><p class="sub" id="calm"></p>
     <div class="wrap"><table><thead><tr><th>Ticker</th><th>Secteur</th><th>Heure</th><th>Période</th><th>BPA estimé</th><th>BPA réel</th><th>CA estimé</th></tr></thead><tbody id="calb"></tbody></table></div>
   </div>
 </section>
@@ -150,6 +154,11 @@ dialog textarea{display:block;width:100%;margin:4px 0 8px;padding:9px 10px;borde
 <dialog id="dlg">
   <form method="dialog">
     <h2>Réglages</h2>
+    <p class="hint">Nouvel appareil ? Saisissez d’abord votre phrase secrète : votre clé, votre quota du jour, la dernière heatmap et le dernier calendrier sont restaurés automatiquement.</p>
+    <label>Code de synchronisation (identique sur chaque appareil)
+      <input id="sp" type="password" autocomplete="off" placeholder="Phrase secrète">
+    </label>
+    <p class="hint" id="sy">Chiffré sur l’appareil avant envoi : le serveur ne voit jamais vos clés. Nécessite le serveur intégré à ce fichier.</p>
     <label>Fournisseur de données
       <select id="prov"><option value="finnhub">Finnhub</option><option value="fmp">Financial Modeling Prep</option></select>
     </label>
@@ -161,10 +170,6 @@ dialog textarea{display:block;width:100%;margin:4px 0 8px;padding:9px 10px;borde
     </label>
     <p class="hint" data-p="finnhub">Finnhub : 300 appels par jour supposés (non confirmé). Le compteur est local et repart à zéro à minuit, heure de votre appareil.</p>
     <p class="hint" data-p="fmp">FMP : 250 appels par jour en offre gratuite. Le compteur est local et repart à zéro à minuit, heure de votre appareil.</p>
-    <label>Code de synchronisation (identique sur chaque appareil)
-      <input id="sp" type="password" autocomplete="off" placeholder="Phrase secrète">
-    </label>
-    <p class="hint" id="sy">Chiffré sur l’appareil avant envoi : le serveur ne voit jamais vos clés. Nécessite le serveur intégré à ce fichier.</p>
     <details id="xfer">
       <summary>Changer d’appareil sans serveur (code à copier)</summary>
       <p class="hint">Chiffré avec la phrase secrète ci-dessus (choisissez-en une longue). Ancien appareil : « Générer le code », copiez-le. Nouvel appareil : saisissez la même phrase, collez le code, « Importer » : clés, limites, compteurs et dernière heatmap sont restaurés.</p>
@@ -228,7 +233,7 @@ async function fh(path){
   if(!r.ok) throw new Error("Erreur HTTP "+r.status);
   return r.json();
  }
- throw new Error("Limite d’appels Finnhub atteinte. Réessayez dans quelques minutes.");
+ block429();throw new Error("Limite d’appels Finnhub atteinte.");
 }
 async function quotesFH(syms){
  const q={};let capsC={};
@@ -287,7 +292,7 @@ async function get(path){
  bump();const r=await fetch(API+path+(path.includes("?")?"&":"?")+"apikey="+encodeURIComponent(key));
  if(r.status===401||r.status===403) throw new Error("Clé refusée par l’API (code "+r.status+").");
  if(r.status===402) throw new Error("Ce point d’accès n’est pas inclus dans votre offre FMP (code 402).");
- if(r.status===429) throw new Error("Limite d’appels atteinte. Réessayez plus tard.");
+ if(r.status===429){block429();throw new Error("Limite d’appels atteinte.")}
  if(!r.ok) throw new Error("Erreur HTTP "+r.status);
  const j=await r.json(); calls++;
  if(j&&!Array.isArray(j)&&(j["Error Message"]||j.message)) throw new Error(j["Error Message"]||j.message);
@@ -301,7 +306,8 @@ async function refresh(){
  key=$("key").value.trim();
  if(!key){setMsg("Clé API manquante.",1);return}
  try{localStorage.setItem(KEYN[prov()],key)}catch(e){}
- if(usage()+costEst()>limit()&&!confirm(`Budget du jour : ${usage()} appels utilisés sur ${limit()}. Cette actualisation coûte environ ${costEst()} appels et dépasserait la limite. Continuer quand même ?`))return;
+ if(busy||calBusy)return;
+ if(blockInfo("heat")){setMsg(quotaMsg("heat"),1);applyQuotaUI();return}
  busy=true;$("go").disabled=true; setMsg("Chargement des données…");
  const before=calls;
  try{
@@ -323,7 +329,7 @@ async function refresh(){
   if(!data.length) throw new Error("Aucune variation reçue. Vérifiez votre offre FMP.");
   const prevSn=jp("snap");
   if(prevSn&&prevSn.data){const pc={};snapData(prevSn).forEach(d=>{if(d.cap>1)pc[d.s]=d.cap});data.forEach(d=>{if(!d.cap&&pc[d.s])d.cap=pc[d.s]})}
-  if(prevSn&&prevSn.data&&data.length<CFG.minCoverage*uni.length&&prevSn.data.length>data.length){setMsg(`Actualisation incomplète (${data.length}/${uni.length} actions reçues) : l’état précédent de la heatmap est conservé.`,1);busy=false;$("go").disabled=false;updateBudget();return}
+  if(prevSn&&prevSn.data&&data.length<CFG.minCoverage*uni.length&&prevSn.data.length>data.length){setMsg(`Actualisation incomplète (${data.length}/${uni.length} actions reçues) : l’état précédent de la heatmap est conservé.`,1);busy=false;updateBudget();return}
   const noCap=data.every(d=>!d.cap);
   if(noCap) data.forEach(d=>d.cap=1);
   const raw=data.map(d=>({...d}));
@@ -333,9 +339,10 @@ async function refresh(){
   if(prov()==='fmp'&&singleMode)setMsg(`Offre limitée : ${denied.size} actions refusées par FMP sont ignorées pour économiser votre quota (environ ${data.length} appels par actualisation).`)
  }catch(e){
   const net=e instanceof TypeError;
+  if(/Limite/.test(e.message)&&blockInfo("heat")){setMsg(quotaMsg("heat"),1)}else
   setMsg(e.message+(net?" (réseau ou CORS : essayez d’ouvrir la page via un petit serveur local)":""),1);
  }
- busy=false;$("go").disabled=false;updateBudget();
+ busy=false;updateBudget();
 }
 function setMsg(t,err){$("msg").textContent=t;$("msg").className=err?"err":""}
 
@@ -451,11 +458,40 @@ function costEst(){
  if(prov()==="finnhub"){let c=0;try{c=Object.keys(JSON.parse(localStorage.getItem("fhcaps")||"{}")).length}catch(e){}return UNI_N+Math.max(0,UNI_N-c)}
  return (singleMode||denied.size)?Math.max(1,UNI_N-denied.size):UNI_N;
 }
+/* ===== Quota : délai avant la prochaine actualisation ===== */
+const nextMidnight=()=>{const d=new Date();d.setHours(24,0,0,0);return d.getTime()};
+const fmtDur=ms=>{const s=Math.max(1,Math.ceil(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} h ${String(m).padStart(2,"0")} min`:m?`${m} min ${String(s%60).padStart(2,"0")} s`:`${s} s`};
+const fmtHM=t=>new Date(t).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+/* k = "heat" (≈ une centaine d’appels) ou "cal" (1 appel). Renvoie null si l’actualisation est possible. */
+function blockInfo(k){
+ const L=limit(),u=usage(),n=k==="cal"?1:costEst();let until=0,why="";
+ if(u+n>L){until=nextMidnight();why=`${u} / ${L} appels utilisés aujourd’hui et ${k==="cal"?"le calendrier":"une actualisation de la heatmap"} en demande environ ${n}.`}
+ const b=+LS.g("blk_"+prov())||0;
+ if(b>Date.now()&&b>until){until=b;why="Le fournisseur a refusé les appels (limite atteinte)."}
+ return until>Date.now()?{until,why}:null;
+}
+function quotaMsg(k){const b=blockInfo(k);return b?`Quota atteint : ${b.why} Prochaine actualisation possible dans ${fmtDur(b.until-Date.now())} (vers ${fmtHM(b.until)}). Les dernières données enregistrées restent affichées.`:""}
+function setBlock(ms){LS.s("blk_"+prov(),String(Date.now()+ms))}
+function block429(){setBlock(prov()==="finnhub"&&usage()<limit()*0.9?60000:nextMidnight()-Date.now())}
+let calBusy=false;
+function applyQuotaUI(){
+ const h=blockInfo("heat"),c=blockInfo("cal");
+ $("go").disabled=busy||calBusy||!!h;$("go").classList.toggle("blk",!!h);$("go").title=h?quotaMsg("heat"):"";
+ $("calgo").disabled=busy||calBusy||!!c;$("calgo").classList.toggle("blk",!!c);$("calgo").title=c?quotaMsg("cal"):"";
+ const qa=$("qa"),cq=$("calq");
+ if(h){
+  const t=fmtDur(h.until-Date.now());
+  qa.innerHTML=`<b>Quota atteint.</b> ${h.why} Heatmap : prochaine actualisation possible dans <b>${t}</b> (vers ${fmtHM(h.until)}). `+(c?"Calendrier : même délai.":"Calendrier : encore actualisable (1 appel).")+" Les dernières données enregistrées restent affichées.";
+  qa.hidden=false;
+ }else qa.hidden=true;
+ if(c){cq.innerHTML=`<b>Quota atteint.</b> Calendrier : prochaine actualisation possible dans <b>${fmtDur(c.until-Date.now())}</b> (vers ${fmtHM(c.until)}). Dernière version enregistrée affichée.`;cq.hidden=false}else cq.hidden=true;
+}
 function updateBudget(){
  const L=limit(),u=usage(),c=costEst(),per=Math.floor(L*0.85/c),rest=Math.max(0,Math.floor((L-u)/c));
  $("bt").textContent=`Appels aujourd’hui : ${u} / ${L}`;
  $("bs").textContent=per>0?`Conseil : ${per} actualisation${per>1?"s":""} par jour au maximum (environ ${c} appels chacune, marge de 15 %). Reste aujourd’hui : ${rest}.`:`Une actualisation (environ ${c} appels) dépasse votre limite journalière. Relevez-la dans les réglages ou changez de fournisseur.`;
  $("bf").style.width=Math.min(100,u/L*100)+"%";
+ applyQuotaUI();
 }
 function syncProv(){
  document.querySelectorAll("[data-p]").forEach(e=>e.hidden=e.dataset.p!==prov());
@@ -476,7 +512,7 @@ const LS={g:k=>{try{return localStorage.getItem(k)}catch(e){return null}},s:(k,v
 const fmtTs=t=>new Date(t).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
 const jp=k=>{try{return JSON.parse(LS.g(k)||"null")}catch(e){return null}};
 function snapData(sn){const d=sn.data.map(x=>({...x}));if(!sn.v){const a=d.find(x=>x.s==="GOOGL"),b=d.find(x=>x.s==="GOOG");if(a&&b&&a.cap&&b.cap&&Math.abs(a.cap-b.cap)/Math.max(a.cap,b.cap)<0.1){a.cap*=2;b.cap*=2}}return d}
-function showSnap(sn){render(snapData(sn),sn.noCap,sn.total);$("last").textContent="Dernières données : "+fmtTs(sn.ts);setMsg("Dernière actualisation conservée. Cliquez sur Actualiser pour la mettre à jour.")}
+function showSnap(sn){render(snapData(sn),sn.noCap,sn.total);$("last").textContent="Dernières données : "+fmtTs(sn.ts);setMsg(blockInfo("heat")?"Quota atteint : dernière heatmap enregistrée affichée.":"Dernière actualisation conservée. Cliquez sur Actualiser pour la mettre à jour.")}
 function saveSnap(data,noCap,total){LS.s("snap",JSON.stringify({v:2,data,noCap,total,ts:Date.now()}));pushSync()}
 {const sn=jp("snap");if(sn&&sn.data)showSnap(sn)}
 
@@ -488,11 +524,17 @@ const sid=async p=>hex(await crypto.subtle.digest("SHA-256",e8.encode("id|"+p)))
 function setSy(t,err){$("sy").textContent=t;$("sy").style.color=err?"#ef5a5d":""}
 function markKeys(){const k=["key_finnhub","fmpkey","lim_finnhub","lim_fmp"].map(LS.g).join("|");if(k!==LS.g("kh")){LS.s("kh",k);LS.s("kts",String(Date.now()))}}
 const SYN_KEYS=["key_finnhub","fmpkey"],SYN_PROV=["finnhub","fmp"];
+function pruneCal(){
+ const ks=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("cal_")){const o=jp(k);ks.push([k,o&&o.t||0])}}}catch(e){}
+ ks.sort((x,y)=>y[1]-x[1]);return ks;
+}
+function calState(){const o={};pruneCal().slice(0,6).forEach(([k])=>{const v=jp(k);if(v&&v.rows)o[k]=v});return o}
 function localState(){
  const keys={},lim={},use={};
  SYN_KEYS.forEach(k=>{const v=LS.g(k);if(v)keys[k]=v});
  SYN_PROV.forEach(k=>{const v=LS.g("lim_"+k);if(v)lim[k]=v;const o=jp("calls_"+k);if(o&&o.d)use[k]=o});
- return{kts:+LS.g("kts")||0,prov:prov(),keys,lim,use,snap:jp("snap")};
+ const blk={};SYN_PROV.forEach(k=>{const v=+LS.g("blk_"+k)||0;if(v>Date.now())blk[k]=v});
+ return{kts:+LS.g("kts")||0,prov:prov(),keys,lim,use,blk,snap:jp("snap"),cal:calState()};
 }
 async function seal(p,st){
  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
@@ -507,6 +549,10 @@ function applyState(st){
  for(const k in (st.lim||{}))if(st.lim[k]&&(newer||!LS.g("lim_"+k)))LS.s("lim_"+k,st.lim[k]);
  if(newer){LS.s("kts",String(st.kts));if(st.prov)LS.s("prov",st.prov)}
  for(const k in (st.use||{})){const l=jp("calls_"+k),r=st.use[k];if(r&&r.d&&(!l||r.d>l.d||(r.d===l.d&&r.n>l.n)))LS.s("calls_"+k,JSON.stringify(r))}
+ for(const k in (st.blk||{})){if(st.blk[k]>(+LS.g("blk_"+k)||0))LS.s("blk_"+k,String(st.blk[k]))}
+ for(const k in (st.cal||{})){if(!/^cal_/.test(k))continue;const l=jp(k),r=st.cal[k];if(r&&r.rows&&(!l||r.t>l.t))LS.s(k,JSON.stringify(r))}
+ pruneCal().slice(12).forEach(([k])=>{try{localStorage.removeItem(k)}catch(e){}});
+ if(!$("tab-cal").hidden)loadCal();
  LS.s("kh",SYN_KEYS.concat(SYN_PROV.map(k=>"lim_"+k)).map(LS.g).join("|"));
  $("prov").value=LS.g("prov")||"finnhub";
  if(document.activeElement!==$("key"))loadKey();
@@ -532,7 +578,7 @@ async function pushSync(){
   try{st=await readRemote(p)}catch(e){return setSy(syncErr(e),1)}
   if(st)applyState(st);
   const loc=localState();
-  if(!Object.keys(loc.keys).length&&!loc.snap)return;
+  if(!Object.keys(loc.keys).length&&!loc.snap&&!Object.keys(loc.cal).length)return;
   const r=await fetch(SY+await sid(p),{method:"PUT",body:await seal(p,loc)});
   if(!r.ok)throw 0;
   setSy("Synchronisé à "+fmtTs(Date.now())+".");
@@ -545,11 +591,11 @@ async function pullSync(){
  let st;
  try{st=await readRemote(p)}catch(e){return setSy(syncErr(e),1)}
  if(!st){
-  if(LS.g("key_finnhub")||LS.g("fmpkey")||jp("snap"))return pushSync();
+  if(LS.g("key_finnhub")||LS.g("fmpkey")||jp("snap")||pruneCal().length)return pushSync();
   return setSy("Aucune donnée trouvée pour cette phrase secrète : vérifiez-la (majuscules comprises) ou utilisez le code de transfert.",1);
  }
  applyState(st);
- setSy("Synchronisé : clés, compteurs et dernière heatmap restaurés.");
+ setSy("Synchronisé : clés, compteurs, dernière heatmap et dernier calendrier restaurés.");
 }
 $("sp").value=LS.g("syncpass")||"";
 $("sp").onchange=()=>{LS.s("syncpass",$("sp").value.trim());pullSync()};
@@ -565,7 +611,7 @@ $("xe").onclick=async()=>{
 $("xi").onclick=async()=>{
  const p=$("sp").value.trim(),c=$("xt").value.trim().replace(/^NSH1\./,"").replace(/\s+/g,"");
  if(!p||!c)return setSy("Phrase secrète et code requis.",1);
- try{applyState(await unseal(p,c));setSy("Importé : clés, limites, compteurs et dernière heatmap restaurés.");$("xt").value=""}
+ try{applyState(await unseal(p,c));setSy("Importé : clés, limites, compteurs, dernière heatmap et dernier calendrier restaurés.");$("xt").value=""}
  catch(e){setSy("Code ou phrase secrète incorrect.",1)}
 };
 /* Reprise de session : on récupère l'état des autres appareils au retour sur l'onglet */
@@ -589,39 +635,53 @@ function calRange(){
 }
 function calMove(u,n){const d=new Date(calD);if(u==="w")d.setDate(d.getDate()+7*n);else{d.setDate(1);d.setMonth(d.getMonth()+n)}calD=d}
 async function calFetch(a,b){
- const k="cal_"+prov()+a+b,c=jp(k);
- if(c&&Date.now()-c.t<216e5)return c;
+ const k="cal_"+prov()+a+b;
  key=$("key").value.trim();if(!key)throw new Error("Clé API manquante (Réglages).");
  let rows;
  if(prov()==="finnhub"){const r=await fh(`calendar/earnings?from=${a}&to=${b}`);rows=((r&&r.earningsCalendar)||[]).map(x=>({s:x.symbol,d:x.date,h:x.hour,q:x.quarter?`T${x.quarter} ${x.year}`:"—",ee:x.epsEstimate,ea:x.epsActual,re:x.revenueEstimate}))}
  else{const r=await get(`earnings-calendar?from=${a}&to=${b}`);rows=r.map(x=>({s:x.symbol,d:x.date,h:"",q:"—",ee:x.epsEstimated,ea:x.epsActual,re:x.revenueEstimated}))}
- const o={t:Date.now(),rows:rows.filter(x=>SEC[x.s])};LS.s(k,JSON.stringify(o));updateBudget();return o;
+ const o={t:Date.now(),rows:rows.filter(x=>SEC[x.s])};LS.s(k,JSON.stringify(o));
+ pruneCal().slice(12).forEach(([x])=>{try{localStorage.removeItem(x)}catch(e){}});
+ pushSync();return o;
 }
-async function loadCal(){
+/* Affichage : toujours la dernière version enregistrée, jamais d’appel réseau automatique */
+function loadCal(){
  const[a,b]=calRange(),A=iso(a),B=iso(b);
  $("calt").textContent=a.toLocaleDateString("fr-FR",{day:"numeric",month:"short"})+" – "+b.toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:"numeric"});
- $("cald").value=iso(calD);$("calv").value=calV;$("calm").textContent="Chargement…";
- let o;
- try{o=await calFetch(A,B);$("calm").textContent=""}
- catch(e){o=jp("cal_"+prov()+A+B);$("calm").textContent=e.message+(o?" Dernière version conservée affichée.":"");if(!o){$("calb").innerHTML="";$("cals").textContent="";return}}
+ $("cald").value=iso(calD);$("calv").value=calV;
+ const o=jp("cal_"+prov()+A+B);
+ if(!o||!o.rows){$("calb").innerHTML="";$("cals").textContent="";$("calm").textContent="Aucune donnée enregistrée pour cette période. "+(blockInfo("cal")?"Actualisation impossible pour l’instant (quota atteint).":"Cliquez sur Actualiser pour la charger.");return}
+ $("calm").textContent="Dernières données : "+fmtTs(o.t)+(blockInfo("cal")?" (quota atteint, actualisation différée).":".");
  const cap={};(lastData||[]).forEach(d=>cap[d.s]=d.cap);
  const by={};o.rows.forEach(r=>(by[r.d]=by[r.d]||[]).push(r));
  const days=Object.keys(by).sort();
  const top=o.rows.filter(r=>cap[r.s]>1).sort((x,y)=>cap[y.s]-cap[x.s]).slice(0,5).map(r=>r.s);
- const busy=days.reduce((m,d)=>!m||by[d].length>by[m].length?d:m,"");
- $("cals").textContent=days.length?`${o.rows.length} publications du Nasdaq 100 sur la période`+(busy?`, jour le plus chargé : ${new Date(busy+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric"})} (${by[busy].length})`:"")+(top.length?`. Plus grosses capitalisations : ${top.join(", ")}.`:"."):"Aucune publication du Nasdaq 100 sur cette période.";
+ const busyD=days.reduce((m,d)=>!m||by[d].length>by[m].length?d:m,"");
+ $("cals").textContent=days.length?`${o.rows.length} publications du Nasdaq 100 sur la période`+(busyD?`, jour le plus chargé : ${new Date(busyD+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric"})} (${by[busyD].length})`:"")+(top.length?`. Plus grosses capitalisations : ${top.join(", ")}.`:"."):"Aucune publication du Nasdaq 100 sur cette période.";
  $("calb").innerHTML=days.map(d=>{
   const rs=by[d].sort((x,y)=>(cap[y.s]||0)-(cap[x.s]||0)||x.s.localeCompare(y.s));
   return `<tr class="dayh${d===iso(new Date())?" today":""}"><td colspan="7">${new Date(d+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})} (${rs.length})</td></tr>`+
   rs.map(r=>`<tr><td><b>${r.s}</b></td><td>${SEC[r.s]}</td><td>${HRS[r.h]||"—"}</td><td>${r.q}</td><td>${nf(r.ee)}</td><td>${nf(r.ea)}</td><td>${rv(r.re)}</td></tr>`).join("")}).join("");
 }
+async function calRefresh(){
+ if(calBusy||busy)return;
+ if(blockInfo("cal")){loadCal();$("calm").textContent=quotaMsg("cal");applyQuotaUI();return}
+ const[a,b]=calRange();calBusy=true;applyQuotaUI();$("calm").textContent="Actualisation du calendrier…";
+ try{await calFetch(iso(a),iso(b));calBusy=false;loadCal();$("calm").textContent="Mis à jour à "+fmtHM(Date.now())+"."}
+ catch(e){calBusy=false;loadCal();const net=e instanceof TypeError;
+  $("calm").textContent=(/Limite/.test(e.message)&&blockInfo("cal")?quotaMsg("cal"):e.message+(net?" (réseau ou CORS)":"")+" La dernière version enregistrée reste affichée.")}
+ calBusy=false;updateBudget();
+}
+$("calgo").onclick=calRefresh;
 document.querySelectorAll("[data-m]").forEach(bt=>bt.onclick=()=>{const m=bt.dataset.m;if(m==="t")calD=new Date();else calMove(m[0],+m.slice(1));loadCal()});
 $("cald").onchange=()=>{if($("cald").value){calD=new Date($("cald").value+"T12:00:00");loadCal()}};
 $("calv").onchange=()=>{calV=$("calv").value;loadCal()};
 
 syncProv();
-if(!$("key").value)$("dlg").showModal();
-pullSync();
+/* Chaque session : on affiche tout de suite le dernier état local, puis on récupère celui des autres appareils (heatmap, calendrier, compteurs) */
+if(!$("key").value){$("dlg").showModal();if(!$("sp").value)$("sp").focus()}
+pullSync().finally(()=>{updateBudget();if(!$("tab-cal").hidden)loadCal()});
+{let day=today();setInterval(()=>{if(today()!==day){day=today();updateBudget()}else applyQuotaUI()},1000)}
 </script>
 <!-- Code du serveur de synchronisation (ignoré par le navigateur). Lancer : node -e "eval(require('fs').readFileSync('index.html','utf8').split('//'+'SRV')[1])" -->
 <script type="text/x-server">
