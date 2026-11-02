@@ -68,6 +68,9 @@ details{font-size:.88rem;margin:4px 0 16px}
 summary{cursor:pointer;color:var(--accent)}
 details a{color:var(--accent)}
 .drow{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cnav{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.cnav button{padding:6px 10px}
+#cald,#calv{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+.dayh td{background:var(--raised);font-weight:600;text-transform:capitalize}.dayh.today td{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -93,6 +96,7 @@ details a{color:var(--accent)}
 
 <div class="tabs" role="tablist">
   <button data-tab="map" aria-selected="true" role="tab">Heatmap</button>
+  <button data-tab="cal" aria-selected="false" role="tab">Calendrier</button>
   <button data-tab="metrics" aria-selected="false" role="tab">Indicateurs</button>
   <button data-tab="sectors" aria-selected="false" role="tab">Secteurs</button>
   <button data-tab="method" aria-selected="false" role="tab">Méthode</button>
@@ -106,6 +110,20 @@ details a{color:var(--accent)}
     </div>
     <div id="map"></div>
     <div id="legend"></div>
+  </div>
+</section>
+
+<section class="panel" id="tab-cal" hidden>
+  <div class="card">
+    <div class="drow" style="align-items:center;margin-bottom:10px">
+      <div><b>Calendrier des résultats : Nasdaq 100</b><div class="sub" id="calt"></div></div>
+      <div class="cnav">
+        <button class="ghost" data-m="m-1">‹ Mois</button><button class="ghost" data-m="w-1">‹ Semaine</button><button class="ghost" data-m="t">Aujourd’hui</button><button class="ghost" data-m="w1">Semaine ›</button><button class="ghost" data-m="m1">Mois ›</button>
+        <input type="date" id="cald" aria-label="Aller à une date"><select id="calv" aria-label="Vue"><option value="week">Semaine</option><option value="month">Mois</option></select>
+      </div>
+    </div>
+    <p class="sub" id="cals"></p><p class="sub" id="calm"></p>
+    <div class="wrap"><table><thead><tr><th>Ticker</th><th>Secteur</th><th>Heure</th><th>Période</th><th>BPA estimé</th><th>BPA réel</th><th>CA estimé</th></tr></thead><tbody id="calb"></tbody></table></div>
   </div>
 </section>
 
@@ -142,6 +160,10 @@ details a{color:var(--accent)}
     </label>
     <p class="hint" data-p="finnhub">Finnhub : 300 appels par jour supposés (non confirmé). Le compteur est local et repart à zéro à minuit, heure de votre appareil.</p>
     <p class="hint" data-p="fmp">FMP : 250 appels par jour en offre gratuite. Le compteur est local et repart à zéro à minuit, heure de votre appareil.</p>
+    <label>Code de synchronisation (identique sur chaque appareil)
+      <input id="sp" type="password" autocomplete="off" placeholder="Phrase secrète">
+    </label>
+    <p class="hint" id="sy">Chiffré sur l’appareil avant envoi : le serveur ne voit jamais vos clés. Nécessite le serveur intégré à ce fichier.</p>
     <details>
       <summary>Clé oubliée ?</summary>
       <div data-p="finnhub"><p>Connectez-vous sur <a href="https://finnhub.io/dashboard" target="_blank" rel="noopener">finnhub.io/dashboard</a> : votre clé API y est affichée. Mot de passe perdu : utilisez le lien de réinitialisation de la page de connexion.</p></div>
@@ -294,7 +316,7 @@ async function refresh(){
   if(!data.length) throw new Error("Aucune variation reçue. Vérifiez votre offre FMP.");
   const noCap=data.every(d=>!d.cap);
   if(noCap) data.forEach(d=>d.cap=1);
-  render(data,noCap,uni.length);
+  render(data,noCap,uni.length);saveSnap(data,noCap,uni.length);
   $("last").textContent="Mise à jour à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
   setMsg(noCap?"Capitalisations indisponibles : toutes les actions ont la même taille.":"");
   if(prov()==='fmp'&&singleMode)setMsg(`Offre limitée : ${denied.size} actions refusées par FMP sont ignorées pour économiser votre quota (environ ${data.length} appels par actualisation).`)
@@ -434,10 +456,123 @@ document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{
  document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x===b));
  document.querySelectorAll(".panel").forEach(pn=>pn.hidden=pn.id!=="tab-"+b.dataset.tab);
  if(b.dataset.tab==="map")drawMap();
+ if(b.dataset.tab==="cal")loadCal();
 });
 $("cfg").onclick=()=>$("dlg").showModal();
+
+/* ===== Persistance locale + synchronisation chiffrée entre appareils ===== */
+const LS={g:k=>{try{return localStorage.getItem(k)}catch(e){return null}},s:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+const fmtTs=t=>new Date(t).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+const jp=k=>{try{return JSON.parse(LS.g(k)||"null")}catch(e){return null}};
+function showSnap(sn){render(sn.data,sn.noCap,sn.total);$("last").textContent="Dernières données : "+fmtTs(sn.ts);setMsg("Dernière actualisation conservée. Cliquez sur Actualiser pour la mettre à jour.")}
+function saveSnap(data,noCap,total){LS.s("snap",JSON.stringify({data,noCap,total,ts:Date.now()}));pushSync()}
+{const sn=jp("snap");if(sn&&sn.data)showSnap(sn)}
+
+const SY="/api/state/",e8=new TextEncoder(),d8=new TextDecoder();
+const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+const b64=u=>btoa(String.fromCharCode(...u)),ub=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+async function ck(p,salt){const m=await crypto.subtle.importKey("raw",e8.encode(p),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:200000,hash:"SHA-256"},m,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
+const sid=async p=>hex(await crypto.subtle.digest("SHA-256",e8.encode("id|"+p)));
+function setSy(t,err){$("sy").textContent=t;$("sy").style.color=err?"#ef5a5d":""}
+function markKeys(){const k=["key_finnhub","fmpkey","lim_finnhub","lim_fmp"].map(LS.g).join("|");if(k!==LS.g("kh")){LS.s("kh",k);LS.s("kts",String(Date.now()))}}
+async function pushSync(){
+ const p=LS.g("syncpass");if(!p||!window.crypto||!crypto.subtle)return;
+ markKeys();
+ try{
+  const st={kts:+LS.g("kts")||0,prov:prov(),keys:{key_finnhub:LS.g("key_finnhub")||"",fmpkey:LS.g("fmpkey")||""},lim:{finnhub:LS.g("lim_finnhub"),fmp:LS.g("lim_fmp")},snap:jp("snap")};
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},await ck(p,salt),e8.encode(JSON.stringify(st))));
+  const out=new Uint8Array(28+ct.length);out.set(salt);out.set(iv,16);out.set(ct,28);
+  const r=await fetch(SY+await sid(p),{method:"PUT",body:b64(out)});
+  if(!r.ok)throw 0;setSy("Synchronisé à "+fmtTs(Date.now())+".");
+ }catch(e){setSy("Synchronisation indisponible : lancez le serveur (voir l’en-tête du fichier) et ouvrez l’app depuis http://localhost:8080. Les données restent sur cet appareil.",1)}
+}
+async function pullSync(){
+ const p=LS.g("syncpass");if(!p||!window.crypto||!crypto.subtle)return;
+ let r;try{r=await fetch(SY+await sid(p))}catch(e){return setSy("Serveur de synchronisation injoignable. Les données restent sur cet appareil.",1)}
+ if(r.status===404)return pushSync();
+ try{
+  const u=ub(await r.text()),st=JSON.parse(d8.decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:u.slice(16,28)},await ck(p,u.slice(0,16)),u.slice(28))));
+  const newer=st.kts>(+LS.g("kts")||0);
+  for(const k in st.keys)if(st.keys[k]&&(newer||!LS.g(k)))LS.s(k,st.keys[k]);
+  for(const k in st.lim)if(st.lim[k]&&(newer||!LS.g("lim_"+k)))LS.s("lim_"+k,st.lim[k]);
+  if(newer){LS.s("kts",String(st.kts));if(st.prov)LS.s("prov",st.prov)}
+  LS.s("kh",["key_finnhub","fmpkey","lim_finnhub","lim_fmp"].map(LS.g).join("|"));
+  $("prov").value=LS.g("prov")||"finnhub";loadKey();syncProv();
+  const cur=jp("snap");if(st.snap&&st.snap.data&&(!cur||st.snap.ts>cur.ts)){LS.s("snap",JSON.stringify(st.snap));showSnap(st.snap)}
+  if($("key").value&&$("dlg").open)$("dlg").close();
+  setSy("Synchronisé : clés et dernière heatmap restaurées.");
+ }catch(e){setSy("Code de synchronisation incorrect.",1)}
+}
+$("sp").value=LS.g("syncpass")||"";
+$("sp").onchange=()=>{LS.s("syncpass",$("sp").value.trim());pullSync()};
+$("dlg").addEventListener("close",pushSync);
+
+/* ===== Calendrier des résultats (Nasdaq 100) ===== */
+const SEC={};Object.entries(NDX).forEach(([sc,l])=>l.split(",").forEach(t=>SEC[t]=sc));
+let calD=new Date(),calV="week";
+const iso=d=>d.toLocaleDateString("fr-CA");
+const HRS={bmo:"Avant ouverture",amc:"Après clôture",dmh:"En séance"};
+const nf=v=>v==null?"—":(v<0?"−":"")+Math.abs(v).toFixed(2).replace(".",",");
+const rv=v=>v==null?"—":v>=1e9?fmt(v/1e9,2)+" Md$":fmt(v/1e6,0)+" M$";
+function calRange(){
+ const d=new Date(calD);
+ if(calV==="month")return[new Date(d.getFullYear(),d.getMonth(),1),new Date(d.getFullYear(),d.getMonth()+1,0)];
+ const m=new Date(d);m.setDate(d.getDate()-((d.getDay()+6)%7));const e=new Date(m);e.setDate(m.getDate()+6);return[m,e];
+}
+function calMove(u,n){const d=new Date(calD);if(u==="w")d.setDate(d.getDate()+7*n);else{d.setDate(1);d.setMonth(d.getMonth()+n)}calD=d}
+async function calFetch(a,b){
+ const k="cal_"+prov()+a+b,c=jp(k);
+ if(c&&Date.now()-c.t<216e5)return c;
+ key=$("key").value.trim();if(!key)throw new Error("Clé API manquante (Réglages).");
+ let rows;
+ if(prov()==="finnhub"){const r=await fh(`calendar/earnings?from=${a}&to=${b}`);rows=((r&&r.earningsCalendar)||[]).map(x=>({s:x.symbol,d:x.date,h:x.hour,q:x.quarter?`T${x.quarter} ${x.year}`:"—",ee:x.epsEstimate,ea:x.epsActual,re:x.revenueEstimate}))}
+ else{const r=await get(`earnings-calendar?from=${a}&to=${b}`);rows=r.map(x=>({s:x.symbol,d:x.date,h:"",q:"—",ee:x.epsEstimated,ea:x.epsActual,re:x.revenueEstimated}))}
+ const o={t:Date.now(),rows:rows.filter(x=>SEC[x.s])};LS.s(k,JSON.stringify(o));updateBudget();return o;
+}
+async function loadCal(){
+ const[a,b]=calRange(),A=iso(a),B=iso(b);
+ $("calt").textContent=a.toLocaleDateString("fr-FR",{day:"numeric",month:"short"})+" – "+b.toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:"numeric"});
+ $("cald").value=iso(calD);$("calv").value=calV;$("calm").textContent="Chargement…";
+ let o;
+ try{o=await calFetch(A,B);$("calm").textContent=""}
+ catch(e){o=jp("cal_"+prov()+A+B);$("calm").textContent=e.message+(o?" Dernière version conservée affichée.":"");if(!o){$("calb").innerHTML="";$("cals").textContent="";return}}
+ const cap={};(lastData||[]).forEach(d=>cap[d.s]=d.cap);
+ const by={};o.rows.forEach(r=>(by[r.d]=by[r.d]||[]).push(r));
+ const days=Object.keys(by).sort();
+ const top=o.rows.filter(r=>cap[r.s]>1).sort((x,y)=>cap[y.s]-cap[x.s]).slice(0,5).map(r=>r.s);
+ const busy=days.reduce((m,d)=>!m||by[d].length>by[m].length?d:m,"");
+ $("cals").textContent=days.length?`${o.rows.length} publications du Nasdaq 100 sur la période`+(busy?`, jour le plus chargé : ${new Date(busy+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric"})} (${by[busy].length})`:"")+(top.length?`. Plus grosses capitalisations : ${top.join(", ")}.`:"."):"Aucune publication du Nasdaq 100 sur cette période.";
+ $("calb").innerHTML=days.map(d=>{
+  const rs=by[d].sort((x,y)=>(cap[y.s]||0)-(cap[x.s]||0)||x.s.localeCompare(y.s));
+  return `<tr class="dayh${d===iso(new Date())?" today":""}"><td colspan="7">${new Date(d+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})} (${rs.length})</td></tr>`+
+  rs.map(r=>`<tr><td><b>${r.s}</b></td><td>${SEC[r.s]}</td><td>${HRS[r.h]||"—"}</td><td>${r.q}</td><td>${nf(r.ee)}</td><td>${nf(r.ea)}</td><td>${rv(r.re)}</td></tr>`).join("")}).join("");
+}
+document.querySelectorAll("[data-m]").forEach(bt=>bt.onclick=()=>{const m=bt.dataset.m;if(m==="t")calD=new Date();else calMove(m[0],+m.slice(1));loadCal()});
+$("cald").onchange=()=>{if($("cald").value){calD=new Date($("cald").value+"T12:00:00");loadCal()}};
+$("calv").onchange=()=>{calV=$("calv").value;loadCal()};
+
 syncProv();
 if(!$("key").value)$("dlg").showModal();
+pullSync();
+</script>
+<!-- Code du serveur de synchronisation (ignoré par le navigateur). Lancer : node -e "eval(require('fs').readFileSync('index.html','utf8').split('//'+'SRV')[1])" -->
+<script type="text/x-server">
+//SRV
+const http=require("http"),fs=require("fs"),path=require("path");
+const D=path.join(process.cwd(),"sync"),P=process.env.PORT||8080;fs.mkdirSync(D,{recursive:true});
+http.createServer((q,r)=>{
+ const m=q.url.match(/^\/api\/state\/([0-9a-f]{64})$/);
+ if(m){const f=path.join(D,m[1]);
+  if(q.method==="GET")fs.readFile(f,(e,b)=>{r.writeHead(e?404:200,{"Content-Type":"text/plain"});r.end(e?"":b)});
+  else if(q.method==="PUT"){let n=0,c=[],big=false;
+   q.on("data",x=>{n+=x.length;if(n>1e6){big=true;r.writeHead(413).end();q.destroy()}else c.push(x)});
+   q.on("end",()=>{if(!big)fs.writeFile(f,Buffer.concat(c),e=>r.writeHead(e?500:204).end())})}
+  else r.writeHead(405).end();
+  return}
+ fs.readFile(path.join(process.cwd(),"index.html"),(e,b)=>{r.writeHead(e?404:200,{"Content-Type":"text/html; charset=utf-8"});r.end(e?"":b)});
+}).listen(P,()=>console.log("http://localhost:"+P));
+//SRV
 </script>
 </body>
 </html>
