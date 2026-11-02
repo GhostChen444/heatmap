@@ -71,6 +71,7 @@ details a{color:var(--accent)}
 .cnav{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.cnav button{padding:6px 10px}
 #cald,#calv{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
 .dayh td{background:var(--raised);font-weight:600;text-transform:capitalize}.dayh.today td{color:var(--accent)}
+dialog textarea{display:block;width:100%;margin:4px 0 8px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12px/1.4 ui-monospace,Consolas,monospace;resize:vertical}
 </style>
 </head>
 <body>
@@ -164,6 +165,12 @@ details a{color:var(--accent)}
       <input id="sp" type="password" autocomplete="off" placeholder="Phrase secrète">
     </label>
     <p class="hint" id="sy">Chiffré sur l’appareil avant envoi : le serveur ne voit jamais vos clés. Nécessite le serveur intégré à ce fichier.</p>
+    <details id="xfer">
+      <summary>Changer d’appareil sans serveur (code à copier)</summary>
+      <p class="hint">Chiffré avec la phrase secrète ci-dessus (choisissez-en une longue). Ancien appareil : « Générer le code », copiez-le. Nouvel appareil : saisissez la même phrase, collez le code, « Importer » : clés, limites, compteurs et dernière heatmap sont restaurés.</p>
+      <textarea id="xt" rows="3" spellcheck="false" aria-label="Code de transfert"></textarea>
+      <div class="drow"><button type="button" class="ghost" id="xe">Générer le code</button><button type="button" class="ghost" id="xi">Importer</button></div>
+    </details>
     <details>
       <summary>Clé oubliée ?</summary>
       <div data-p="finnhub"><p>Connectez-vous sur <a href="https://finnhub.io/dashboard" target="_blank" rel="noopener">finnhub.io/dashboard</a> : votre clé API y est affichée. Mot de passe perdu : utilisez le lien de réinitialisation de la page de connexion.</p></div>
@@ -314,9 +321,13 @@ async function refresh(){
    data.push({s:u.symbol,sector:u.sector||"Autres",ch,cap});
   }
   if(!data.length) throw new Error("Aucune variation reçue. Vérifiez votre offre FMP.");
+  const prevSn=jp("snap");
+  if(prevSn&&prevSn.data){const pc={};snapData(prevSn).forEach(d=>{if(d.cap>1)pc[d.s]=d.cap});data.forEach(d=>{if(!d.cap&&pc[d.s])d.cap=pc[d.s]})}
+  if(prevSn&&prevSn.data&&data.length<CFG.minCoverage*uni.length&&prevSn.data.length>data.length){setMsg(`Actualisation incomplète (${data.length}/${uni.length} actions reçues) : l’état précédent de la heatmap est conservé.`,1);busy=false;$("go").disabled=false;updateBudget();return}
   const noCap=data.every(d=>!d.cap);
   if(noCap) data.forEach(d=>d.cap=1);
-  render(data,noCap,uni.length);saveSnap(data,noCap,uni.length);
+  const raw=data.map(d=>({...d}));
+  render(data,noCap,uni.length);saveSnap(raw,noCap,uni.length);
   $("last").textContent="Mise à jour à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
   setMsg(noCap?"Capitalisations indisponibles : toutes les actions ont la même taille.":"");
   if(prov()==='fmp'&&singleMode)setMsg(`Offre limitée : ${denied.size} actions refusées par FMP sont ignorées pour économiser votre quota (environ ${data.length} appels par actualisation).`)
@@ -464,8 +475,9 @@ $("cfg").onclick=()=>$("dlg").showModal();
 const LS={g:k=>{try{return localStorage.getItem(k)}catch(e){return null}},s:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
 const fmtTs=t=>new Date(t).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
 const jp=k=>{try{return JSON.parse(LS.g(k)||"null")}catch(e){return null}};
-function showSnap(sn){render(sn.data,sn.noCap,sn.total);$("last").textContent="Dernières données : "+fmtTs(sn.ts);setMsg("Dernière actualisation conservée. Cliquez sur Actualiser pour la mettre à jour.")}
-function saveSnap(data,noCap,total){LS.s("snap",JSON.stringify({data,noCap,total,ts:Date.now()}));pushSync()}
+function snapData(sn){const d=sn.data.map(x=>({...x}));if(!sn.v){const a=d.find(x=>x.s==="GOOGL"),b=d.find(x=>x.s==="GOOG");if(a&&b&&a.cap&&b.cap&&Math.abs(a.cap-b.cap)/Math.max(a.cap,b.cap)<0.1){a.cap*=2;b.cap*=2}}return d}
+function showSnap(sn){render(snapData(sn),sn.noCap,sn.total);$("last").textContent="Dernières données : "+fmtTs(sn.ts);setMsg("Dernière actualisation conservée. Cliquez sur Actualiser pour la mettre à jour.")}
+function saveSnap(data,noCap,total){LS.s("snap",JSON.stringify({v:2,data,noCap,total,ts:Date.now()}));pushSync()}
 {const sn=jp("snap");if(sn&&sn.data)showSnap(sn)}
 
 const SY="/api/state/",e8=new TextEncoder(),d8=new TextDecoder();
@@ -475,38 +487,93 @@ async function ck(p,salt){const m=await crypto.subtle.importKey("raw",e8.encode(
 const sid=async p=>hex(await crypto.subtle.digest("SHA-256",e8.encode("id|"+p)));
 function setSy(t,err){$("sy").textContent=t;$("sy").style.color=err?"#ef5a5d":""}
 function markKeys(){const k=["key_finnhub","fmpkey","lim_finnhub","lim_fmp"].map(LS.g).join("|");if(k!==LS.g("kh")){LS.s("kh",k);LS.s("kts",String(Date.now()))}}
+const SYN_KEYS=["key_finnhub","fmpkey"],SYN_PROV=["finnhub","fmp"];
+function localState(){
+ const keys={},lim={},use={};
+ SYN_KEYS.forEach(k=>{const v=LS.g(k);if(v)keys[k]=v});
+ SYN_PROV.forEach(k=>{const v=LS.g("lim_"+k);if(v)lim[k]=v;const o=jp("calls_"+k);if(o&&o.d)use[k]=o});
+ return{kts:+LS.g("kts")||0,prov:prov(),keys,lim,use,snap:jp("snap")};
+}
+async function seal(p,st){
+ const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+ const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},await ck(p,salt),e8.encode(JSON.stringify(st))));
+ const out=new Uint8Array(28+ct.length);out.set(salt);out.set(iv,16);out.set(ct,28);return b64(out);
+}
+async function unseal(p,t){const u=ub(t);return JSON.parse(d8.decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:u.slice(16,28)},await ck(p,u.slice(0,16)),u.slice(28))))}
+/* Fusion additive : on ne supprime ni n'écrase jamais une valeur locale existante par du vide */
+function applyState(st){
+ const had=!!$("key").value,newer=(st.kts||0)>(+LS.g("kts")||0);
+ for(const k in (st.keys||{}))if(st.keys[k]&&(newer||!LS.g(k)))LS.s(k,st.keys[k]);
+ for(const k in (st.lim||{}))if(st.lim[k]&&(newer||!LS.g("lim_"+k)))LS.s("lim_"+k,st.lim[k]);
+ if(newer){LS.s("kts",String(st.kts));if(st.prov)LS.s("prov",st.prov)}
+ for(const k in (st.use||{})){const l=jp("calls_"+k),r=st.use[k];if(r&&r.d&&(!l||r.d>l.d||(r.d===l.d&&r.n>l.n)))LS.s("calls_"+k,JSON.stringify(r))}
+ LS.s("kh",SYN_KEYS.concat(SYN_PROV.map(k=>"lim_"+k)).map(LS.g).join("|"));
+ $("prov").value=LS.g("prov")||"finnhub";
+ if(document.activeElement!==$("key"))loadKey();
+ syncProv();
+ const cur=jp("snap");if(st.snap&&st.snap.data&&(!cur||st.snap.ts>cur.ts)){LS.s("snap",JSON.stringify(st.snap));showSnap(st.snap)}
+ if(!had&&$("key").value&&$("dlg").open)$("dlg").close();
+}
+async function readRemote(p){
+ const r=await fetch(SY+await sid(p));
+ if(r.status===404)return null;
+ if(!r.ok)throw new Error("srv");
+ return unseal(p,await r.text());
+}
+const syncErr=e=>e instanceof TypeError?"Serveur de synchronisation injoignable. Les données restent sur cet appareil.":e&&e.message==="srv"?"Le serveur de synchronisation a renvoyé une erreur. Les données restent sur cet appareil.":"Phrase secrète incorrecte ou données illisibles.";
+let pushing=false;
 async function pushSync(){
- const p=LS.g("syncpass");if(!p||!window.crypto||!crypto.subtle)return;
- markKeys();
+ const p=LS.g("syncpass");if(!p||pushing)return;
+ if(!window.crypto||!crypto.subtle)return setSy("Chiffrement indisponible : ouvrez l’app en HTTPS ou via http://localhost (pas via une adresse IP en http).",1);
+ pushing=true;
  try{
-  const st={kts:+LS.g("kts")||0,prov:prov(),keys:{key_finnhub:LS.g("key_finnhub")||"",fmpkey:LS.g("fmpkey")||""},lim:{finnhub:LS.g("lim_finnhub"),fmp:LS.g("lim_fmp")},snap:jp("snap")};
-  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
-  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},await ck(p,salt),e8.encode(JSON.stringify(st))));
-  const out=new Uint8Array(28+ct.length);out.set(salt);out.set(iv,16);out.set(ct,28);
-  const r=await fetch(SY+await sid(p),{method:"PUT",body:b64(out)});
-  if(!r.ok)throw 0;setSy("Synchronisé à "+fmtTs(Date.now())+".");
+  markKeys();
+  let st=null;
+  try{st=await readRemote(p)}catch(e){return setSy(syncErr(e),1)}
+  if(st)applyState(st);
+  const loc=localState();
+  if(!Object.keys(loc.keys).length&&!loc.snap)return;
+  const r=await fetch(SY+await sid(p),{method:"PUT",body:await seal(p,loc)});
+  if(!r.ok)throw 0;
+  setSy("Synchronisé à "+fmtTs(Date.now())+".");
  }catch(e){setSy("Synchronisation indisponible : lancez le serveur (voir l’en-tête du fichier) et ouvrez l’app depuis http://localhost:8080. Les données restent sur cet appareil.",1)}
+ finally{pushing=false}
 }
 async function pullSync(){
- const p=LS.g("syncpass");if(!p||!window.crypto||!crypto.subtle)return;
- let r;try{r=await fetch(SY+await sid(p))}catch(e){return setSy("Serveur de synchronisation injoignable. Les données restent sur cet appareil.",1)}
- if(r.status===404)return pushSync();
- try{
-  const u=ub(await r.text()),st=JSON.parse(d8.decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:u.slice(16,28)},await ck(p,u.slice(0,16)),u.slice(28))));
-  const newer=st.kts>(+LS.g("kts")||0);
-  for(const k in st.keys)if(st.keys[k]&&(newer||!LS.g(k)))LS.s(k,st.keys[k]);
-  for(const k in st.lim)if(st.lim[k]&&(newer||!LS.g("lim_"+k)))LS.s("lim_"+k,st.lim[k]);
-  if(newer){LS.s("kts",String(st.kts));if(st.prov)LS.s("prov",st.prov)}
-  LS.s("kh",["key_finnhub","fmpkey","lim_finnhub","lim_fmp"].map(LS.g).join("|"));
-  $("prov").value=LS.g("prov")||"finnhub";loadKey();syncProv();
-  const cur=jp("snap");if(st.snap&&st.snap.data&&(!cur||st.snap.ts>cur.ts)){LS.s("snap",JSON.stringify(st.snap));showSnap(st.snap)}
-  if($("key").value&&$("dlg").open)$("dlg").close();
-  setSy("Synchronisé : clés et dernière heatmap restaurées.");
- }catch(e){setSy("Code de synchronisation incorrect.",1)}
+ const p=LS.g("syncpass");if(!p)return;
+ if(!window.crypto||!crypto.subtle)return setSy("Chiffrement indisponible : ouvrez l’app en HTTPS ou via http://localhost (pas via une adresse IP en http).",1);
+ let st;
+ try{st=await readRemote(p)}catch(e){return setSy(syncErr(e),1)}
+ if(!st){
+  if(LS.g("key_finnhub")||LS.g("fmpkey")||jp("snap"))return pushSync();
+  return setSy("Aucune donnée trouvée pour cette phrase secrète : vérifiez-la (majuscules comprises) ou utilisez le code de transfert.",1);
+ }
+ applyState(st);
+ setSy("Synchronisé : clés, compteurs et dernière heatmap restaurés.");
 }
 $("sp").value=LS.g("syncpass")||"";
 $("sp").onchange=()=>{LS.s("syncpass",$("sp").value.trim());pullSync()};
 $("dlg").addEventListener("close",pushSync);
+$("xe").onclick=async()=>{
+ const p=$("sp").value.trim();
+ if(!p)return setSy("Saisissez d’abord la phrase secrète.",1);
+ if(!window.crypto||!crypto.subtle)return setSy("Chiffrement indisponible : ouvrez l’app en HTTPS ou via http://localhost.",1);
+ try{markKeys();const c="NSH1."+await seal(p,localState());$("xt").value=c;$("xt").select();
+  try{await navigator.clipboard.writeText(c);setSy("Code copié. Collez-le sur l’autre appareil.")}catch(e){setSy("Code généré : copiez-le manuellement.")}
+ }catch(e){setSy("Impossible de générer le code.",1)}
+};
+$("xi").onclick=async()=>{
+ const p=$("sp").value.trim(),c=$("xt").value.trim().replace(/^NSH1\./,"").replace(/\s+/g,"");
+ if(!p||!c)return setSy("Phrase secrète et code requis.",1);
+ try{applyState(await unseal(p,c));setSy("Importé : clés, limites, compteurs et dernière heatmap restaurés.");$("xt").value=""}
+ catch(e){setSy("Code ou phrase secrète incorrect.",1)}
+};
+/* Reprise de session : on récupère l'état des autres appareils au retour sur l'onglet */
+let lastPull=Date.now();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&Date.now()-lastPull>6e4){lastPull=Date.now();pullSync()}});
+/* Le quota appartient à la clé, pas à l'appareil : les compteurs d'appels sont partagés */
+{const _ub=updateBudget;let lu=-1;updateBudget=function(){_ub();const u=usage();if(lu>=0&&u!==lu){clearTimeout(window._pt);window._pt=setTimeout(pushSync,15000)}lu=u}}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
 /* ===== Calendrier des résultats (Nasdaq 100) ===== */
 const SEC={};Object.entries(NDX).forEach(([sc,l])=>l.split(",").forEach(t=>SEC[t]=sc));
