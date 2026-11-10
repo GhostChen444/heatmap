@@ -2,7 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05070b">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Nasdaq 100 : Top 8</title>
 <style>
 :root{--bg:#05070b;--ln:rgba(255,255,255,.09);--rs:rgba(255,255,255,.045);--ink:#e8edf3;--mu:#7d8999;--ac:#2ee6a6;--bl:#5b8cff;--dn:#ff4d6a;--on:#03140d;--cd:rgba(12,16,24,.74);--mono:ui-monospace,"JetBrains Mono",Consolas,monospace;color-scheme:dark}
@@ -74,6 +76,42 @@ td input{width:84px;font-family:var(--mono)}
 .sc{overflow-x:auto}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:6px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.tabs svg{display:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+html{-webkit-tap-highlight-color:transparent}button{touch-action:manipulation}
+@media (max-width:760px){
+ main{padding:calc(12px + env(safe-area-inset-top)) 12px calc(98px + env(safe-area-inset-bottom))}
+ .orb{animation:none;opacity:.2;filter:blur(70px)}
+ h1{font-size:.95rem;letter-spacing:.12em}.brand i{width:26px;height:26px}
+ .clk{display:grid;grid-template-columns:repeat(3,1fr);width:100%;gap:6px}
+ .cb{position:relative;flex-direction:column;align-items:flex-start;gap:0;border-radius:12px;padding:6px 10px}
+ .cb b{font-size:.8rem}.cb .d{position:absolute;top:9px;right:9px}
+ .tabs{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));top:auto;z-index:30;margin:0;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:5px;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.75)}
+ .tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;font-size:.68rem;border-radius:15px;min-height:52px}
+ .tabs svg{display:block}
+ .card{padding:12px;border-radius:14px}
+ .g,#mc{grid-template-columns:1fr}
+ .kp{grid-template-columns:1fr 1fr;gap:8px}.k{padding:10px 12px}.k strong{font-size:1.15rem}
+ #chart{height:66vh!important;min-height:420px}
+ #qt{height:430px!important}
+ select,input{font-size:16px;min-height:42px}button.b{min-height:42px}
+ .row>div:last-child{width:100%}.row select{width:calc(50% - 4px)}
+ .dv{min-width:0}
+ .sc{overflow:visible}
+ table,tbody{display:block}thead{display:none}
+ #wb tr{display:grid;grid-template-columns:30px 1fr 1fr;gap:6px 10px;align-items:center;padding:12px 2px;border-bottom:1px solid var(--ln)}
+ #wb td{display:block;border:0;padding:0}
+ #wb td:nth-child(3){text-align:right}
+ #wb td:nth-child(4){grid-column:2}#wb td:nth-child(5){grid-column:3}
+ #wb tr.tot{grid-template-columns:1fr auto auto}
+ #wb tr.tot td:nth-child(1),#wb tr.tot td:nth-child(4){display:none}
+ td input{width:100%}
+ #cb tr{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;padding:12px 2px;border-bottom:1px solid var(--ln)}
+ #cb td{display:block;border:0;padding:0}
+ #cb td:nth-child(1){grid-column:1/-1;color:var(--mu);font-size:.8rem}
+ #cb td:nth-child(4){grid-column:1/-1;font-size:.8rem;color:var(--mu)}
+ #cb td:nth-child(5){grid-column:3;grid-row:2;text-align:right}
+}
+@media (max-width:380px){.tabs button{font-size:.62rem}.k strong{font-size:1rem}}
 </style>
 </head>
 <body>
@@ -81,7 +119,7 @@ td input{width:84px;font-family:var(--mono)}
 <main>
 <header class="top"><div class="brand"><i></i><h1>NASDAQ 100 <span>TOP 8</span></h1></div><div class="clk"><span class="cb"><i class="d on"></i><em>Rabat</em><b id="c1"></b></span><span class="cb" title="Séance régulière, hors jours fériés"><i class="d" id="d3"></i><em>Londres</em><b id="c3"></b></span><span class="cb" title="Séance régulière, hors jours fériés"><i class="d" id="d2"></i><em>New York</em><b id="c2"></b></span></div></header>
 <div id="tape" class="w" style="height:78px;margin-top:10px"></div>
-<div class="tabs" role="tablist"><button data-t="ch" aria-selected="true">Graphique</button><button data-t="va" aria-selected="false">Variations</button><button data-t="mc" aria-selected="false">8 valeurs</button><button data-t="cl" aria-selected="false">Calendrier</button></div>
+<div class="tabs" role="tablist"><button data-t="ch" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-6 4 3 8-9"/><path d="M3 21h18"/></svg><span>Graphique</span></button><button data-t="va" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M7 4L4 7M7 4l3 3M17 20V4M17 20l-3-3M17 20l3-3"/></svg><span>Variations</span></button><button data-t="mc" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>8 valeurs</span></button><button data-t="cl" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Calendrier</span></button></div>
 
 <section id="t-ch">
   <div class="card">
