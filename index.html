@@ -2,704 +2,219 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Heatmap des indices US en direct</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nasdaq 100 : Top 8</title>
 <style>
-:root{--bg:#0c0f15;--surface:#141922;--raised:#1b2230;--line:#262e3d;--ink:#e7eaf0;--mute:#8d97aa;--accent:#7aa7ff;--on:#0b1226;color-scheme:dark;
-box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:light){:root{--bg:#f3f5f8;--surface:#fff;--raised:#eef1f6;--line:#dde2ea;--ink:#141a26;--mute:#5d6880;--accent:#2f5fd0;--on:#fff;color-scheme:light}}
+:root{--bg:#05070b;--ln:rgba(255,255,255,.09);--rs:rgba(255,255,255,.045);--ink:#e8edf3;--mu:#7d8999;--ac:#2ee6a6;--bl:#5b8cff;--dn:#ff4d6a;--on:#03140d;--cd:rgba(12,16,24,.74);--mono:ui-monospace,"JetBrains Mono",Consolas,monospace;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans","Segoe UI",system-ui,sans-serif;font-variant-numeric:tabular-nums}
-main{max-width:1500px;margin:0 auto;padding:20px 20px 48px}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-h1{font-size:1.35rem;font-weight:600;letter-spacing:-.01em;margin:0}
-.sub{color:var(--mute);font-size:.88rem;margin:2px 0 0}
-.actions{display:flex;align-items:center;gap:10px}
-#last{color:var(--mute);font-size:.85rem}
-button{font:inherit;font-weight:500;padding:8px 16px;border:0;border-radius:6px;background:var(--accent);color:var(--on);cursor:pointer}
-button:disabled{opacity:.5;cursor:wait}
-button.ghost{background:transparent;color:var(--mute);border:1px solid var(--line)}
-button.icon{padding:8px 10px;line-height:0}
-button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:14px}
-.budget{display:flex;gap:6px 18px;align-items:center;flex-wrap:wrap;font-size:.85rem;color:var(--mute);padding:10px 14px}
-.budget b{color:var(--ink);font-weight:500}
-.bb{height:4px;background:var(--raised);border-radius:2px;flex:1 1 120px;min-width:100px}
-.bb i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px}
-#msg{min-height:0;margin:0 0 10px;font-size:.9rem;color:var(--mute)}
-#msg.err{color:#ef5a5d}
-#msg:empty{display:none}
-.verdict{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-.badge{font-size:1.25rem;font-weight:600;padding:8px 16px;border-radius:6px;color:#fff}
-.v-tm{background:#f63538}.v-m{background:#bf4045}.v-n{background:#414554}.v-b{background:#2f9e4f}.v-tb{background:#30a851}
-.big{font-size:1.8rem;font-weight:600;line-height:1.1}
-#expl{color:var(--mute);font-size:.9rem;max-width:90ch}
-.bar{display:flex;height:22px;border-radius:5px;overflow:hidden;margin-top:14px}
-.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
-.tabs button{background:none;color:var(--mute);border-radius:0;border-bottom:2px solid transparent;padding:10px 16px}
-.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
-table{width:100%;border-collapse:collapse;font-size:.9rem}
-th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
-th{color:var(--mute);font-weight:500}
-.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
-.kpi{background:var(--raised);border-radius:6px;padding:12px}
-.kpi small{display:block;color:var(--mute)}
-.kpi b{font-size:1.25rem;font-weight:600}
-#kpis:empty::before{content:"Aucune donnée pour l’instant.";color:var(--mute)}
-.wrap{overflow-x:auto}
-#mapcard:fullscreen{background:var(--bg);padding:16px;overflow:auto}
-#legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.82rem;color:var(--mute)}
-#map{position:relative;width:100%;min-height:420px;background:#0d1016;border-radius:6px;overflow:hidden}
-#map:empty{display:flex;align-items:center;justify-content:center;color:#8b92a5;text-align:center;padding:16px}
-#map:empty::before{content:"Aucune heatmap enregistrée sur cet appareil. Saisissez votre phrase secrète (Réglages) pour récupérer la dernière heatmap, ou cliquez sur Actualiser."}
-.t{position:absolute;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:600;line-height:1.15;box-shadow:inset 0 0 0 1px #0d1016;text-shadow:0 1px 2px rgba(0,0,0,.35)}
-.t span{font-weight:400;font-size:.85em}
-.sl{position:absolute;font-size:11px;line-height:15px;padding:0 4px;color:#cfd3dd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pos{color:#34b765}.neg{color:#ef5a5d}
-dialog{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:22px;width:min(460px,92vw)}
-dialog::backdrop{background:rgba(0,0,0,.55)}
-dialog h2{margin:0 0 14px;font-size:1.1rem;font-weight:600}
-dialog label{display:block;font-size:.85rem;color:var(--mute);margin-bottom:12px}
-dialog input,dialog select{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
-.hint{font-size:.82rem;color:var(--mute);margin:-6px 0 12px}
-.qa{margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-left:3px solid #e0a43a;border-radius:6px;background:var(--surface);font-size:.88rem;line-height:1.45}
-.qa b{font-weight:600}
-button:disabled.blk{cursor:not-allowed}
-details{font-size:.88rem;margin:4px 0 16px}
-summary{cursor:pointer;color:var(--accent)}
-details a{color:var(--accent)}
-.drow{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.cnav{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.cnav button{padding:6px 10px}
-#cald,#calv{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
-.dayh td{background:var(--raised);font-weight:600;text-transform:capitalize}.dayh.today td{color:var(--accent)}
-dialog textarea{display:block;width:100%;margin:4px 0 8px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12px/1.4 ui-monospace,Consolas,monospace;resize:vertical}
+body{margin:0;color:var(--ink);font:14px/1.5 Inter,"Segoe UI",system-ui,sans-serif;font-variant-numeric:tabular-nums;background:var(--bg);min-height:100vh;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:radial-gradient(ellipse at 50% 0,#000,transparent 75%);mask-image:radial-gradient(ellipse at 50% 0,#000,transparent 75%)}
+.orb{position:fixed;border-radius:50%;filter:blur(100px);opacity:.3;pointer-events:none}
+.o1{width:540px;height:540px;background:#18e0a0;top:-180px;right:-140px;animation:fl 18s ease-in-out infinite alternate}
+.o2{width:600px;height:600px;background:#4a64ff;bottom:-240px;left:-180px;animation:fl 23s ease-in-out infinite alternate-reverse}
+@keyframes fl{to{transform:translate(70px,50px) scale(1.18)}}
+@keyframes up{from{opacity:0;transform:translateY(10px)}}
+@keyframes pl{50%{opacity:.3}}
+main{position:relative;max-width:1500px;margin:0 auto;padding:18px 18px 60px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.brand{display:flex;align-items:center;gap:13px}
+.brand i{width:32px;height:32px;border-radius:9px;background:conic-gradient(from 210deg,var(--ac),var(--bl),var(--ac));box-shadow:0 0 26px rgba(46,230,166,.5)}
+h1{font:700 1.15rem var(--mono);letter-spacing:.2em;margin:0}
+h1 span{background:linear-gradient(90deg,var(--ac),var(--bl));-webkit-background-clip:text;background-clip:text;color:transparent}
+.clk{display:flex;gap:8px;flex-wrap:wrap}
+.cb{display:flex;align-items:center;gap:8px;border:1px solid var(--ln);border-radius:999px;padding:5px 14px;background:var(--rs);backdrop-filter:blur(10px)}
+.cb em{font-style:normal;font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mu)}
+.cb b{font:500 .84rem var(--mono)}
+.d{width:7px;height:7px;border-radius:50%;background:#3a4452}
+.d.on{background:var(--ac);box-shadow:0 0 12px var(--ac);animation:pl 2s infinite}
+.sub{color:var(--mu);font-size:.8rem;margin:2px 0}
+.tabs{position:sticky;top:8px;z-index:5;display:inline-flex;gap:4px;padding:4px;border:1px solid var(--ln);border-radius:14px;background:rgba(10,14,20,.7);backdrop-filter:blur(16px);margin:14px 0}
+.tabs button{font:500 .86rem inherit;font-family:inherit;background:none;border:0;border-radius:10px;color:var(--mu);padding:9px 22px;cursor:pointer;transition:.2s}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected=true]{color:var(--on);font-weight:700;background:linear-gradient(135deg,var(--ac),#8af3d3);box-shadow:0 0 24px rgba(46,230,166,.4)}
+section{animation:up .45s both}
+.card{background:linear-gradient(var(--cd),var(--cd)) padding-box,linear-gradient(135deg,rgba(46,230,166,.45),rgba(91,140,255,.3) 40%,rgba(255,255,255,.05) 70%) border-box;border:1px solid transparent;border-radius:16px;padding:16px;margin-bottom:14px;backdrop-filter:blur(12px);box-shadow:0 16px 50px rgba(0,0,0,.5)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.row>div>b{font:600 .72rem var(--mono);letter-spacing:.16em;text-transform:uppercase}
+.row>div>b::before{content:"";display:inline-block;width:6px;height:6px;margin-right:9px;border-radius:50%;background:var(--ac);box-shadow:0 0 10px var(--ac)}
+select,input{font:inherit;padding:7px 10px;border:1px solid var(--ln);border-radius:9px;background:rgba(0,0,0,.4);color:var(--ink)}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+button.b{font:700 .84rem inherit;font-family:inherit;padding:8px 16px;border:0;border-radius:9px;background:linear-gradient(135deg,var(--ac),#8af3d3);color:var(--on);cursor:pointer;box-shadow:0 0 20px rgba(46,230,166,.3);transition:.2s}
+button.b:hover{box-shadow:0 0 32px rgba(46,230,166,.55);transform:translateY(-1px)}
+.w{border-radius:12px;overflow:hidden;border:1px solid var(--ln)}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px}
+.kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.k{padding:14px 16px;border:1px solid var(--ln);border-radius:14px;background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.01));backdrop-filter:blur(10px)}
+.k small{display:block;font:500 .66rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mu)}
+.k strong{display:block;margin-top:4px;font:600 1.55rem var(--mono)}
+#mc{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}
+.mt{border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.35);transition:.25s}
+.mt:hover{border-color:rgba(46,230,166,.6);box-shadow:0 0 32px rgba(46,230,166,.16);transform:translateY(-3px)}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;font-size:.78rem;color:var(--mu);border-bottom:1px solid var(--ln)}
+.mh b{color:var(--ink);font-family:var(--mono);letter-spacing:.06em}
+.mh u{text-decoration:none;margin-left:6px}
+.rkb{font:700 .66rem var(--mono);color:var(--ac);border:1px solid rgba(46,230,166,.45);border-radius:999px;padding:1px 8px;margin-left:8px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--ln)}
+th{color:var(--mu);font:500 .66rem var(--mono);text-transform:uppercase;letter-spacing:.12em}
+td b,td:not(:nth-child(2)){font-family:var(--mono)}
+td.rk{color:var(--ac);font-weight:700;width:34px}
+tbody tr{transition:.15s}tbody tr:hover{background:var(--rs)}
+.bar{height:4px;margin-top:4px;background:var(--rs);border-radius:3px;min-width:70px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--bl),var(--ac));border-radius:3px;box-shadow:0 0 10px rgba(46,230,166,.5)}
+.dv{position:relative;height:8px;min-width:150px;background:var(--rs);border-radius:4px;margin-bottom:3px}
+.dv::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:rgba(255,255,255,.25)}
+.dv i{position:absolute;top:0;height:100%;border-radius:4px}
+.dv i.up{background:linear-gradient(90deg,rgba(46,230,166,.3),var(--ac));box-shadow:0 0 12px rgba(46,230,166,.6)}
+.dv i.dn{background:linear-gradient(270deg,rgba(255,77,106,.3),var(--dn));box-shadow:0 0 12px rgba(255,77,106,.6)}
+td input{width:84px;font-family:var(--mono)}
+.tot td{font-weight:700;background:var(--rs)}
+.pos{color:var(--ac);text-shadow:0 0 14px rgba(46,230,166,.45)}
+.neg,.err{color:var(--dn)}.neg{text-shadow:0 0 14px rgba(255,77,106,.4)}
+.sc{overflow-x:auto}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:6px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
+<div class="orb o1"></div><div class="orb o2"></div>
 <main>
-<header>
-  <div><h1>Heatmap des indices US en direct</h1><p class="sub">Nasdaq 100 : variations réelles classées selon l’échelle de couleurs Finviz.</p></div>
-  <div class="actions">
-    <span id="last"></span>
-    <button id="go">Actualiser la heatmap</button>
-    <button id="cfg" class="ghost icon" aria-label="Réglages" title="Réglages"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-  </div>
-</header>
+<header class="top"><div class="brand"><i></i><h1>NASDAQ 100 <span>TOP 8</span></h1></div><div class="clk"><span class="cb"><i class="d on"></i><em>Rabat</em><b id="c1"></b></span><span class="cb" title="Séance régulière, hors jours fériés"><i class="d" id="d3"></i><em>Londres</em><b id="c3"></b></span><span class="cb" title="Séance régulière, hors jours fériés"><i class="d" id="d2"></i><em>New York</em><b id="c2"></b></span></div></header>
+<div id="tape" class="w" style="height:78px;margin-top:10px"></div>
+<div class="tabs" role="tablist"><button data-t="ch" aria-selected="true">Graphique</button><button data-t="va" aria-selected="false">Variations</button><button data-t="mc" aria-selected="false">8 valeurs</button><button data-t="cl" aria-selected="false">Calendrier</button></div>
 
-<div class="card budget"><span id="bt"></span><div class="bb"><i id="bf"></i></div><span id="bs"></span></div>
-<p id="qa" class="qa" hidden></p>
-<p id="msg"></p>
-
-<div id="out" hidden>
+<section id="t-ch">
   <div class="card">
-    <div class="verdict"><div id="badge" class="badge"></div><div><div class="big" id="score"></div><div id="expl"></div></div></div>
-    <div class="bar" id="bar"></div>
-  </div>
-</div>
-
-<div class="tabs" role="tablist">
-  <button data-tab="map" aria-selected="true" role="tab">Heatmap</button>
-  <button data-tab="cal" aria-selected="false" role="tab">Calendrier</button>
-  <button data-tab="metrics" aria-selected="false" role="tab">Indicateurs</button>
-  <button data-tab="sectors" aria-selected="false" role="tab">Secteurs</button>
-  <button data-tab="method" aria-selected="false" role="tab">Méthode</button>
-</div>
-
-<section class="panel" id="tab-map">
-  <div class="card" id="mapcard">
-    <div class="drow" style="margin-bottom:10px;align-items:center">
-      <div><b>Heatmap du Nasdaq 100</b><div class="sub">Taille : capitalisation. Couleur : variation du jour.</div></div>
-      <button id="fs" type="button" class="ghost">Plein écran</button>
-    </div>
-    <div id="map"></div>
-    <div id="legend"></div>
+    <div class="row"><div><b>Cours du Nasdaq 100</b></div><div><select id="sy" aria-label="Instrument"><option value="FOREXCOM:NSXUSD">NSXUSD : Nasdaq 100 (CFD)</option><option value="OANDA:NAS100USD">NAS100USD : Nasdaq 100 (CFD)</option><option value="CAPITALCOM:US100">US100 : Nasdaq 100 (CFD)</option><option value="NASDAQ:QQQ">QQQ : ETF</option></select>
+        <select id="iv" aria-label="Unité de temps"><option value="15">15 min</option><option value="60">1 h</option><option value="240">4 h</option><option value="D">Jour</option><option value="W">Semaine</option></select></div></div>
+    <div id="chart" class="w" style="height:620px"></div>
   </div>
 </section>
 
-<section class="panel" id="tab-cal" hidden>
+<section id="t-va" hidden>
+  <div class="kp">
+    <div class="k"><small>Impact net des 8</small><strong id="k1">—</strong></div>
+    <div class="k"><small>Moteur n°1</small><strong id="k2">—</strong></div>
+    <div class="k"><small>Frein n°1</small><strong id="k3">—</strong></div>
+    <div class="k"><small>Poids des 8 dans le NDX</small><strong id="k4"></strong></div>
+  </div>
+  <div class="g">
+    <div class="card">
+      <div class="row"><div><b>Variations et impact sur le NDX</b><div class="sub">Classement du plus au moins impactant (poids × variation).</div></div><div><span class="sub" id="ls"></span> <button class="b" id="ld">Actualiser</button></div></div>
+      <div class="sc"><table><thead><tr><th>#</th><th>Valeur</th><th>Poids</th><th>Variation</th><th>Impact sur le NDX</th></tr></thead><tbody id="wb"></tbody></table></div>
+      <p class="sub" id="wn" style="margin-top:10px"></p>
+    </div>
+    <div class="card"><div class="row"><div><b>Cotations en direct</b></div></div><div id="qt" class="w" style="height:480px"></div></div>
+  </div>
+</section>
+
+<section id="t-mc" hidden>
   <div class="card">
-    <div class="drow" style="align-items:center;margin-bottom:10px">
-      <div><b>Calendrier des résultats : Nasdaq 100</b><div class="sub" id="calt"></div></div>
-      <div class="cnav">
-        <button class="ghost" data-m="m-1">‹ Mois</button><button class="ghost" data-m="w-1">‹ Semaine</button><button class="ghost" data-m="t">Aujourd’hui</button><button class="ghost" data-m="w1">Semaine ›</button><button class="ghost" data-m="m1">Mois ›</button>
-        <input type="date" id="cald" aria-label="Aller à une date"><select id="calv" aria-label="Vue"><option value="week">Semaine</option><option value="month">Mois</option></select><button id="calgo" type="button">Actualiser</button>
-      </div>
-    </div>
-    <p class="qa" id="calq" hidden></p><p class="sub" id="cals"></p><p class="sub" id="calm"></p>
-    <div class="wrap"><table><thead><tr><th>Ticker</th><th>Secteur</th><th>Heure</th><th>Période</th><th>BPA estimé</th><th>BPA réel</th><th>CA estimé</th></tr></thead><tbody id="calb"></tbody></table></div>
+    <div class="row"><div><b>Les 8 valeurs du jour</b><div class="sub">Mini-graphiques TradingView, classés du plus au moins impactant sur le NDX.</div></div></div>
+    <div id="mc"></div>
   </div>
 </section>
 
-<section class="panel" id="tab-metrics" hidden>
-  <div class="card grid" id="kpis"></div>
-  <div class="card wrap"><table><thead><tr><th>Palier</th><th>Poids (capitalisation)</th><th>Nombre d’actions</th></tr></thead><tbody id="rows"></tbody></table></div>
-</section>
-
-<section class="panel" id="tab-sectors" hidden>
-  <div class="card wrap"><table><thead><tr><th>Secteur</th><th>Variation pondérée</th><th>Poids dans l’indice</th></tr></thead><tbody id="sect"></tbody></table></div>
-</section>
-
-<section class="panel" id="tab-method" hidden>
-  <div class="card wrap">
-    <table><thead><tr><th>Verdict</th><th>Score final</th></tr></thead><tbody>
-      <tr><td>Très mauvais</td><td>≤ −1,2</td></tr><tr><td>Mauvais</td><td>−1,2 à −0,4</td></tr><tr><td>Normal</td><td>−0,4 à +0,4</td></tr><tr><td>Bien</td><td>+0,4 à +1,2</td></tr><tr><td>Très bien</td><td>≥ +1,2</td></tr>
-    </tbody></table>
-    <p class="sub" style="max-width:80ch;margin-top:12px">Chaque variation est plafonnée à ±3 % (échelle Finviz) pour qu’une valeur extrême ne fausse pas le score. Score final = 60 % du score pondéré par la capitalisation (ce que fait l’indice) + 40 % du score égal-pondéré (participation de l’ensemble des actions). Une divergence entre les deux est signalée. Si moins de 90 % des actions du Nasdaq 100 sont reçues, aucun verdict n’est donné. Les deux lignes d’Alphabet se partagent la capitalisation de l’entreprise pour éviter un double comptage. Les seuils sont des repères non validés statistiquement.</p>
+<section id="t-cl" hidden>
+  <div class="card">
+    <div class="row"><div><b>Calendrier des résultats : Top 8</b><div class="sub">Sans clé API : les dates sont saisies dans la liste EARN du fichier. Sources : communiqués de NVIDIA et de Broadcom.</div></div></div>
+    <div class="sc"><table><thead><tr><th>Date</th><th>Ticker</th><th>Société</th><th>Publication</th><th>Échéance</th></tr></thead><tbody id="cb"></tbody></table></div>
+    <p class="sub" style="margin-top:10px">Les six autres valeurs publient habituellement leurs résultats de fin d’année fin janvier – début février. Quand une date est annoncée, ajoutez-la dans EARN (d: "AAAA-MM-JJ").</p>
   </div>
 </section>
+
 </main>
 
-<dialog id="dlg">
-  <form method="dialog">
-    <h2>Réglages</h2>
-    <p class="hint">Nouvel appareil ? Saisissez d’abord votre phrase secrète : votre clé, votre quota du jour, la dernière heatmap et le dernier calendrier sont restaurés automatiquement.</p>
-    <label>Code de synchronisation (identique sur chaque appareil)
-      <input id="sp" type="password" autocomplete="off" placeholder="Phrase secrète">
-    </label>
-    <p class="hint" id="sy">Chiffré sur l’appareil avant envoi : le serveur ne voit jamais vos clés. Nécessite le serveur intégré à ce fichier.</p>
-    <label>Fournisseur de données
-      <select id="prov"><option value="finnhub">Finnhub</option><option value="fmp">Financial Modeling Prep</option></select>
-    </label>
-    <label>Clé API
-      <input id="key" type="password" autocomplete="off" placeholder="Collez votre clé">
-    </label>
-    <label>Limite d’appels par jour
-      <input id="lim" type="number" min="1">
-    </label>
-    <p class="hint" data-p="finnhub">Finnhub : 300 appels par jour supposés (non confirmé). Le compteur est local et repart à zéro à minuit, heure de votre appareil.</p>
-    <p class="hint" data-p="fmp">FMP : 250 appels par jour en offre gratuite. Le compteur est local et repart à zéro à minuit, heure de votre appareil.</p>
-    <details id="xfer">
-      <summary>Changer d’appareil sans serveur (code à copier)</summary>
-      <p class="hint">Chiffré avec la phrase secrète ci-dessus (choisissez-en une longue). Ancien appareil : « Générer le code », copiez-le. Nouvel appareil : saisissez la même phrase, collez le code, « Importer » : clés, limites, compteurs et dernière heatmap sont restaurés.</p>
-      <textarea id="xt" rows="3" spellcheck="false" aria-label="Code de transfert"></textarea>
-      <div class="drow"><button type="button" class="ghost" id="xe">Générer le code</button><button type="button" class="ghost" id="xi">Importer</button></div>
-    </details>
-    <details>
-      <summary>Clé oubliée ?</summary>
-      <div data-p="finnhub"><p>Connectez-vous sur <a href="https://finnhub.io/dashboard" target="_blank" rel="noopener">finnhub.io/dashboard</a> : votre clé API y est affichée. Mot de passe perdu : utilisez le lien de réinitialisation de la page de connexion.</p></div>
-      <div data-p="fmp"><p>Connectez-vous sur <a href="https://site.financialmodelingprep.com/developer/docs/dashboard" target="_blank" rel="noopener">votre tableau de bord FMP</a>, puis ouvrez « Clés API » dans le menu de gauche. Mot de passe perdu : utilisez le lien de réinitialisation de la page de connexion.</p></div>
-    </details>
-    <div class="drow">
-      <button type="button" id="reset" class="ghost">Oublier les tickers refusés</button>
-      <button value="ok">Enregistrer</button>
-    </div>
-  </form>
-</dialog>
-
 <script>
-const PAL=[
- {k:-3,n:"−3 % et moins",c:"#f63538"},{k:-2,n:"−2 %",c:"#bf4045"},{k:-1,n:"−1 %",c:"#8b444e"},
- {k:0,n:"0 %",c:"#414554"},
- {k:1,n:"+1 %",c:"#35764e"},{k:2,n:"+2 %",c:"#2f9e4f"},{k:3,n:"+3 % et plus",c:"#30cc5a"}
-];
-const API="https://financialmodelingprep.com/stable/";
 const $=id=>document.getElementById(id);
-const fmt=(v,d=1)=>v.toFixed(d).replace(".",",");
-const sg=(v,d=2)=>(v>0?"+":"")+fmt(v,d);
-let key="",calls=0,timer=null,uni=null,caps={};
-
-const prov=()=>$("prov").value;
-const KEYN={finnhub:"key_finnhub",fmp:"fmpkey"};
-try{$("prov").value=localStorage.getItem("prov")||"finnhub"}catch(e){}
-function loadKey(){try{$("key").value=localStorage.getItem(KEYN[prov()])||""}catch(e){}}
-loadKey();
-$("prov").onchange=()=>{try{localStorage.setItem("prov",prov())}catch(e){}loadKey();setMsg("");syncProv()};
-
-const NDX={
-"Technologie":"AAPL,MSFT,NVDA,AVGO,AMD,CSCO,ASML,INTU,QCOM,ADBE,TXN,ARM,AMAT,PANW,ADI,CRWD,APP,LRCX,MU,KLAC,INTC,SNPS,CDNS,WDAY,FTNT,MRVL,ADSK,NXPI,ROP,DDOG,TEAM,ZS,MDB,ON,MCHP,PLTR,CDW,GFS,CTSH,SHOP,TTD,MSTR",
-"Communication":"GOOGL,GOOG,META,NFLX,TMUS,CMCSA,CHTR,EA,TTWO,WBD",
-"Consommation cyclique":"AMZN,TSLA,BKNG,SBUX,MELI,DASH,ABNB,ORLY,MAR,ROST,LULU,PDD",
-"Consommation de base":"COST,PEP,MDLZ,KDP,KHC,MNST,CCEP,DLTR",
-"Santé":"AZN,ISRG,AMGN,GILD,VRTX,REGN,IDXX,DXCM,BIIB,GEHC,ILMN",
-"Industrie":"HON,ADP,CTAS,CSX,PCAR,FAST,CPRT,ODFL,VRSK,AXON,PAYX,TRI",
-"Énergie":"BKR,FANG",
-"Services aux collectivités":"AEP,XEL,EXC,CEG",
-"Matériaux":"LIN",
-"Immobilier":"CSGP",
-"Finance":"PYPL"
-};
-let lastReq=0;
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function fh(path){
- for(let a=0;a<3;a++){
-  const wait=lastReq+1100-Date.now(); if(wait>0) await sleep(wait);
-  lastReq=Date.now();
-  bump();const r=await fetch("https://finnhub.io/api/v1/"+path+(path.includes("?")?"&":"?")+"token="+encodeURIComponent(key));
-  if(r.status===429){await sleep(15000);continue}
-  if(r.status===401) throw new Error("Clé Finnhub refusée (code 401).");
-  if(r.status===403) return null;
-  if(!r.ok) throw new Error("Erreur HTTP "+r.status);
-  return r.json();
- }
- block429();throw new Error("Limite d’appels Finnhub atteinte.");
-}
-async function quotesFH(syms){
- const q={};let capsC={};
- try{capsC=JSON.parse(localStorage.getItem("fhcaps")||"{}")}catch(e){}
- let n=0;
- for(const s of syms){
-  setMsg(`Finnhub : cotation ${++n}/${syms.length}…`);
-  try{const r=await fh("quote?symbol="+s);if(r&&r.c&&typeof r.dp==="number")q[s]={changePercentage:r.dp,marketCap:0}}
-  catch(e){if(/refusée|Limite/.test(e.message))throw e}
- }
- if(!Object.keys(q).length) throw new Error("Aucune cotation reçue de Finnhub.");
- const miss=Object.keys(q).filter(s=>!(capsC[s]&&Date.now()-capsC[s].t<7*864e5));
- let i=0;
- for(const s of miss){
-  setMsg(`Finnhub : capitalisation ${++i}/${miss.length} (une seule fois, puis mise en mémoire)…`);
-  try{const p=await fh("stock/profile2?symbol="+s);if(p&&p.marketCapitalization)capsC[s]={v:p.marketCapitalization*1e6,t:Date.now()}}
-  catch(e){if(/refusée|Limite/.test(e.message))break}
- }
- try{localStorage.setItem("fhcaps",JSON.stringify(capsC))}catch(e){}
- for(const s in q) if(capsC[s]) q[s].marketCap=capsC[s].v;
- return q;
-}
-let singleMode=false,denied=new Set();
-try{singleMode=localStorage.getItem("fmpsingle")==="1";denied=new Set(JSON.parse(localStorage.getItem("fmpdenied")||"[]"))}catch(e){}
-const saveDenied=()=>{try{localStorage.setItem("fmpdenied",JSON.stringify([...denied]));localStorage.setItem("fmpsingle",singleMode?"1":"0")}catch(e){}};
-async function quotes(syms){
- const q={};
- if(!singleMode){
-  try{
-   for(const part of chunk(syms,100)){
-    const rows=await get("batch-quote?symbols="+part.join(","));
-    rows.forEach(r=>q[r.symbol]=r);
-   }
-   return q;
-  }catch(e){ if(!/402/.test(e.message)) throw e; singleMode=true;saveDenied(); }
- }
- setMsg("Offre limitée : cotations récupérées une par une, patientez…");
- let lastErr=null;
- const todo=syms.filter(s=>!denied.has(s));
- for(let i=0;i<todo.length;i+=5){
-  await Promise.all(todo.slice(i,i+5).map(async s=>{
-   try{const r=await get("quote?symbol="+s);if(r&&r[0])q[s]=r[0]}
-   catch(e){
-    if(/402/.test(e.message)) denied.add(s);
-    else if(/Limite|clé|Clé/.test(e.message)) throw e;
-    else lastErr=e;
-   }
-  }));
- }
- saveDenied();
- if(!Object.keys(q).length&&lastErr) throw lastErr;
- if(!Object.keys(q).length) throw new Error("Aucune action n’est accessible avec votre offre FMP.");
- return q;
-}
-async function get(path){
- bump();const r=await fetch(API+path+(path.includes("?")?"&":"?")+"apikey="+encodeURIComponent(key));
- if(r.status===401||r.status===403) throw new Error("Clé refusée par l’API (code "+r.status+").");
- if(r.status===402) throw new Error("Ce point d’accès n’est pas inclus dans votre offre FMP (code 402).");
- if(r.status===429){block429();throw new Error("Limite d’appels atteinte.")}
- if(!r.ok) throw new Error("Erreur HTTP "+r.status);
- const j=await r.json(); calls++;
- if(j&&!Array.isArray(j)&&(j["Error Message"]||j.message)) throw new Error(j["Error Message"]||j.message);
- return j;
-}
-const chunk=(a,n)=>Array.from({length:Math.ceil(a.length/n)},(_,i)=>a.slice(i*n,i*n+n));
-
-let busy=false,nextAt=0;
-async function refresh(){
- if(busy)return;
- key=$("key").value.trim();
- if(!key){setMsg("Clé API manquante.",1);return}
- try{localStorage.setItem(KEYN[prov()],key)}catch(e){}
- if(busy||calBusy)return;
- if(blockInfo("heat")){setMsg(quotaMsg("heat"),1);applyQuotaUI();return}
- busy=true;$("go").disabled=true; setMsg("Chargement des données…");
- const before=calls;
- try{
-  if(!uni) uni=Object.entries(NDX).flatMap(([sector,s])=>s.split(",").map(symbol=>({symbol,sector})));
-  const syms=uni.map(u=>u.symbol);
-  const q=await (prov()==="finnhub"?quotesFH(syms):quotes(syms));
-  const need=syms.filter(s=>q[s]&&!caps[s]&&!q[s].marketCap);
-  for(const part of chunk(need,100)){
-   try{const rows=await get("market-capitalization-batch?symbols="+part.join(","));rows.forEach(r=>caps[r.symbol]=r.marketCap)}catch(e){break}
-  }
-  const data=[];
-  for(const u of uni){
-   const r=q[u.symbol]; if(!r) continue;
-   const ch=r.changePercentage??r.changesPercentage;
-   if(typeof ch!=="number") continue;
-   const cap=r.marketCap||caps[u.symbol]||0;
-   data.push({s:u.symbol,sector:u.sector||"Autres",ch,cap});
-  }
-  if(!data.length) throw new Error("Aucune variation reçue. Vérifiez votre offre FMP.");
-  const prevSn=jp("snap");
-  if(prevSn&&prevSn.data){const pc={};snapData(prevSn).forEach(d=>{if(d.cap>1)pc[d.s]=d.cap});data.forEach(d=>{if(!d.cap&&pc[d.s])d.cap=pc[d.s]})}
-  if(prevSn&&prevSn.data&&data.length<CFG.minCoverage*uni.length&&prevSn.data.length>data.length){setMsg(`Actualisation incomplète (${data.length}/${uni.length} actions reçues) : l’état précédent de la heatmap est conservé.`,1);busy=false;updateBudget();return}
-  const noCap=data.every(d=>!d.cap);
-  if(noCap) data.forEach(d=>d.cap=1);
-  const raw=data.map(d=>({...d}));
-  render(data,noCap,uni.length);saveSnap(raw,noCap,uni.length);
-  $("last").textContent="Mise à jour à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
-  setMsg(noCap?"Capitalisations indisponibles : toutes les actions ont la même taille.":"");
-  if(prov()==='fmp'&&singleMode)setMsg(`Offre limitée : ${denied.size} actions refusées par FMP sont ignorées pour économiser votre quota (environ ${data.length} appels par actualisation).`)
- }catch(e){
-  const net=e instanceof TypeError;
-  if(/Limite/.test(e.message)&&blockInfo("heat")){setMsg(quotaMsg("heat"),1)}else
-  setMsg(e.message+(net?" (réseau ou CORS : essayez d’ouvrir la page via un petit serveur local)":""),1);
- }
- busy=false;updateBudget();
-}
-function setMsg(t,err){$("msg").textContent=t;$("msg").className=err?"err":""}
-
-const CFG={wCap:0.6,wEq:0.4,clamp:3,cuts:[-1.2,-0.4,0.4,1.2],minCoverage:0.9};
-const NAMES=["Très mauvais","Mauvais","Normal","Bien","Très bien"],CLS=["v-tm","v-m","v-n","v-b","v-tb"];
-function render(data,noCap,total){
- const g1=data.find(d=>d.s==="GOOGL"),g2=data.find(d=>d.s==="GOOG");
- if(g1&&g2&&g1.cap&&g2.cap&&Math.abs(g1.cap-g2.cap)/Math.max(g1.cap,g2.cap)<0.1){g1.cap/=2;g2.cap/=2}
- const C=CFG.clamp,cl=v=>Math.max(-C,Math.min(C,v));
- const T=data.reduce((a,d)=>a+d.cap,0),N=data.length;
- const capScore=data.reduce((a,d)=>a+cl(d.ch)*d.cap,0)/T;
- const eqScore=data.reduce((a,d)=>a+cl(d.ch),0)/N;
- const idx=data.reduce((a,d)=>a+d.ch*d.cap,0)/T;
- const S=CFG.wCap*capScore+CFG.wEq*eqScore;
- const w=new Array(7).fill(0),n=new Array(7).fill(0),sec={};
- let adv=0,dec=0,advCap=0;
- for(const d of data){
-  const k=Math.max(-3,Math.min(3,Math.round(d.ch)))+3;
-  w[k]+=d.cap;n[k]++;
-  if(d.ch>0){adv++;advCap+=d.cap}else if(d.ch<0)dec++;
-  const x=sec[d.sector]=sec[d.sector]||{c:0,v:0};x.c+=d.cap;x.v+=d.ch*d.cap;
- }
- const pct=w.map(v=>v/T*100);
- const red=pct[0]+pct[1]+pct[2],grey=pct[3],green=pct[4]+pct[5]+pct[6];
- const top10=[...data].sort((a,b)=>b.cap-a.cap).slice(0,10).reduce((a,d)=>a+d.cap,0)/T*100;
- const cov=N/total,ok=cov>=CFG.minCoverage,K=CFG.cuts;
- const lvl=S<=K[0]?0:S<K[1]?1:S<=K[2]?2:S<K[3]?3:4;
- let note="";
- if(Math.sign(capScore)!==Math.sign(eqScore)&&Math.abs(capScore)>0.2&&Math.abs(eqScore)>0.2)
-  note=capScore>0?" Attention : la hausse est portée par les grosses capitalisations, l’action moyenne recule.":" Attention : la baisse est portée par les grosses capitalisations, l’action moyenne progresse.";
- $("badge").textContent=ok?NAMES[lvl]:"Données incomplètes";
- $("badge").className="badge "+(ok?CLS[lvl]:"v-n");
- $("score").textContent="Score "+sg(S);
- $("expl").textContent=`${fmt(green)} % de vert, ${fmt(red)} % de rouge, ${fmt(grey)} % de gris (poids en capitalisation).`+(ok?note:` Seulement ${N} actions sur ${total} reçues : le verdict indicatif serait « ${NAMES[lvl]} » mais il n’est pas fiable.`);
- $("bar").innerHTML=PAL.map((p,j)=>`<div title="${p.n} : ${fmt(pct[j])} %" style="width:${pct[j]}%;background:${p.c}"></div>`).join("");
- $("kpis").innerHTML=[
-  ["Variation de l’indice (pondérée)",sg(idx)+" %"],
-  ["Score capitalisation",sg(capScore)],
-  ["Score égal-pondéré",sg(eqScore)],
-  ["Hausses / baisses",adv+" / "+dec],
-  ["Poids en hausse",fmt(advCap/T*100)+" %"],
-  ["Poids des 10 premières",fmt(top10)+" %"],
-  ["Couverture",N+" / "+total+" ("+fmt(cov*100,0)+" %)"]
- ].map(k=>`<div class="kpi"><small>${k[0]}</small><b>${k[1]}</b></div>`).join("");
- $("rows").innerHTML=PAL.map((p,j)=>`<tr><td><span class="sw" style="background:${p.c}"></span>${p.n}</td><td>${fmt(pct[j])} %</td><td>${n[j]}</td></tr>`).join("");
- $("sect").innerHTML=Object.entries(sec).sort((a,b)=>b[1].c-a[1].c).map(([s,x])=>{
-  const v=x.v/x.c;return `<tr><td>${s}</td><td class="${v>0?"pos":v<0?"neg":""}">${sg(v)} %</td><td>${fmt(x.c/T*100)} %</td></tr>`}).join("");
- $("out").hidden=false;
- lastData=data;drawMap();
-}
-
-let lastData=null;
-function squarify(items,x,y,w,h){
- const out=[],rest=items.slice();
- while(rest.length&&w>0.5&&h>0.5){
-  const sh=Math.min(w,h);
-  const worst=(r,s)=>{const a=r.map(i=>i.a),mx=Math.max(...a),mn=Math.min(...a);return Math.max(sh*sh*mx/(s*s),s*s/(sh*sh*mn))};
-  let row=[],sum=0,wr=Infinity;
-  while(rest.length){
-   const nr=row.concat(rest[0]),ns=sum+rest[0].a,nw=worst(nr,ns);
-   if(row.length&&nw>wr)break;
-   row=nr;sum=ns;wr=nw;rest.shift();
-  }
-  const th=sum/sh;let off=0;
-  if(w>=h){for(const i of row){const hh=i.a/th;out.push({i,x,y:y+off,w:th,h:hh});off+=hh}x+=th;w-=th}
-  else{for(const i of row){const ww=i.a/th;out.push({i,x:x+off,y,w:ww,h:th});off+=ww}y+=th;h-=th}
- }
- return out;
-}
-function layout(items,x,y,w,h){
- const tot=items.reduce((a,i)=>a+i.v,0);
- items.forEach(i=>i.a=i.v/tot*w*h);
- return squarify(items.sort((a,b)=>b.v-a.v),x,y,w,h);
-}
-function drawMap(){
- if(!lastData)return;
- const m=$("map"),W=m.clientWidth||800,H=document.fullscreenElement===$("mapcard")?Math.max(400,innerHeight-130):Math.max(560,Math.min(950,Math.round(W*0.6)));
- m.style.height=H+"px";
- const by={};
- lastData.forEach(d=>{(by[d.sector]=by[d.sector]||{n:d.sector,v:0,st:[]});by[d.sector].v+=d.cap;by[d.sector].st.push({v:d.cap,d})});
- let html="";
- for(const s of layout(Object.values(by),0,0,W,H)){
-  const hasLbl=s.w>50&&s.h>40,top=hasLbl?15:0;
-  if(hasLbl)html+=`<div class="sl" style="left:${s.x}px;top:${s.y}px;width:${s.w}px">${s.i.n}</div>`;
-  const stocks=layout(s.i.st,s.x+1,s.y+top+1,Math.max(1,s.w-2),Math.max(1,s.h-top-2));
-  for(const t of stocks){
-   const d=t.i.d,k=Math.max(-3,Math.min(3,Math.round(d.ch)))+3;
-   let inner="";
-   if(t.w>22&&t.h>13){
-    const fs=Math.max(7,Math.min(26,Math.min(t.w/(d.s.length*0.62),t.h/2.4)));
-    inner=`<div style="font-size:${fs}px">${d.s}${t.h>fs*2.6&&t.w>fs*3?`<br><span>${sg(d.ch)} %</span>`:""}</div>`;
-   }
-   html+=`<div class="t" title="${d.s} · ${d.sector} · ${sg(d.ch)} %" style="left:${t.x}px;top:${t.y}px;width:${t.w}px;height:${t.h}px;background:${PAL[k].c}">${inner}</div>`;
-  }
- }
- m.innerHTML=html;
-}
-window.addEventListener("resize",()=>{clearTimeout(window._rz);window._rz=setTimeout(drawMap,150)});
-
-$("go").onclick=refresh;
-$("reset").onclick=()=>{denied.clear();singleMode=false;try{localStorage.removeItem("fmpdenied");localStorage.removeItem("fmpsingle")}catch(e){}setMsg("Liste réinitialisée : la prochaine actualisation testera de nouveau toutes les actions.")};
-$("legend").innerHTML=PAL.map(p=>`<span><span class="sw" style="background:${p.c}"></span>${p.n}</span>`).join("");
-$("fs").onclick=()=>{const c=$("mapcard");document.fullscreenElement?document.exitFullscreen():(c.requestFullscreen&&c.requestFullscreen())};
-document.addEventListener("fullscreenchange",()=>setTimeout(drawMap,100));
-
-const UNI_N=Object.values(NDX).reduce((a,x)=>a+x.split(",").length,0);
-const DEF={finnhub:300,fmp:250};
-const today=()=>new Date().toLocaleDateString("fr-CA");
-function limit(){try{return +localStorage.getItem("lim_"+prov())||DEF[prov()]}catch(e){return DEF[prov()]}}
-function usage(){try{const o=JSON.parse(localStorage.getItem("calls_"+prov())||"{}");return o.d===today()?o.n:0}catch(e){return 0}}
-function bump(){try{localStorage.setItem("calls_"+prov(),JSON.stringify({d:today(),n:usage()+1}))}catch(e){}}
-function costEst(){
- if(prov()==="finnhub"){let c=0;try{c=Object.keys(JSON.parse(localStorage.getItem("fhcaps")||"{}")).length}catch(e){}return UNI_N+Math.max(0,UNI_N-c)}
- return (singleMode||denied.size)?Math.max(1,UNI_N-denied.size):UNI_N;
-}
-/* ===== Quota : délai avant la prochaine actualisation ===== */
-const nextMidnight=()=>{const d=new Date();d.setHours(24,0,0,0);return d.getTime()};
-const fmtDur=ms=>{const s=Math.max(1,Math.ceil(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} h ${String(m).padStart(2,"0")} min`:m?`${m} min ${String(s%60).padStart(2,"0")} s`:`${s} s`};
-const fmtHM=t=>new Date(t).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
-/* k = "heat" (≈ une centaine d’appels) ou "cal" (1 appel). Renvoie null si l’actualisation est possible. */
-function blockInfo(k){
- const L=limit(),u=usage(),n=k==="cal"?1:costEst();let until=0,why="";
- if(u+n>L){until=nextMidnight();why=`${u} / ${L} appels utilisés aujourd’hui et ${k==="cal"?"le calendrier":"une actualisation de la heatmap"} en demande environ ${n}.`}
- const b=+LS.g("blk_"+prov())||0;
- if(b>Date.now()&&b>until){until=b;why="Le fournisseur a refusé les appels (limite atteinte)."}
- return until>Date.now()?{until,why}:null;
-}
-function quotaMsg(k){const b=blockInfo(k);return b?`Quota atteint : ${b.why} Prochaine actualisation possible dans ${fmtDur(b.until-Date.now())} (vers ${fmtHM(b.until)}). Les dernières données enregistrées restent affichées.`:""}
-function setBlock(ms){LS.s("blk_"+prov(),String(Date.now()+ms))}
-function block429(){setBlock(prov()==="finnhub"&&usage()<limit()*0.9?60000:nextMidnight()-Date.now())}
-let calBusy=false;
-function applyQuotaUI(){
- const h=blockInfo("heat"),c=blockInfo("cal");
- $("go").disabled=busy||calBusy||!!h;$("go").classList.toggle("blk",!!h);$("go").title=h?quotaMsg("heat"):"";
- $("calgo").disabled=busy||calBusy||!!c;$("calgo").classList.toggle("blk",!!c);$("calgo").title=c?quotaMsg("cal"):"";
- const qa=$("qa"),cq=$("calq");
- if(h){
-  const t=fmtDur(h.until-Date.now());
-  qa.innerHTML=`<b>Quota atteint.</b> ${h.why} Heatmap : prochaine actualisation possible dans <b>${t}</b> (vers ${fmtHM(h.until)}). `+(c?"Calendrier : même délai.":"Calendrier : encore actualisable (1 appel).")+" Les dernières données enregistrées restent affichées.";
-  qa.hidden=false;
- }else qa.hidden=true;
- if(c){cq.innerHTML=`<b>Quota atteint.</b> Calendrier : prochaine actualisation possible dans <b>${fmtDur(c.until-Date.now())}</b> (vers ${fmtHM(c.until)}). Dernière version enregistrée affichée.`;cq.hidden=false}else cq.hidden=true;
-}
-function updateBudget(){
- const L=limit(),u=usage(),c=costEst(),per=Math.floor(L*0.85/c),rest=Math.max(0,Math.floor((L-u)/c));
- $("bt").textContent=`Appels aujourd’hui : ${u} / ${L}`;
- $("bs").textContent=per>0?`Conseil : ${per} actualisation${per>1?"s":""} par jour au maximum (environ ${c} appels chacune, marge de 15 %). Reste aujourd’hui : ${rest}.`:`Une actualisation (environ ${c} appels) dépasse votre limite journalière. Relevez-la dans les réglages ou changez de fournisseur.`;
- $("bf").style.width=Math.min(100,u/L*100)+"%";
- applyQuotaUI();
-}
-function syncProv(){
- document.querySelectorAll("[data-p]").forEach(e=>e.hidden=e.dataset.p!==prov());
- $("lim").value=limit();updateBudget();
-}
-$("lim").onchange=()=>{try{localStorage.setItem("lim_"+prov(),String(Math.max(1,+$("lim").value||DEF[prov()])))}catch(e){}updateBudget()};
-$("key").onchange=()=>{try{localStorage.setItem(KEYN[prov()],$("key").value.trim())}catch(e){}};
-document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{
- document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x===b));
- document.querySelectorAll(".panel").forEach(pn=>pn.hidden=pn.id!=="tab-"+b.dataset.tab);
- if(b.dataset.tab==="map")drawMap();
- if(b.dataset.tab==="cal")loadCal();
-});
-$("cfg").onclick=()=>$("dlg").showModal();
-
-/* ===== Persistance locale + synchronisation chiffrée entre appareils ===== */
 const LS={g:k=>{try{return localStorage.getItem(k)}catch(e){return null}},s:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
-const fmtTs=t=>new Date(t).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
-const jp=k=>{try{return JSON.parse(LS.g(k)||"null")}catch(e){return null}};
-function snapData(sn){const d=sn.data.map(x=>({...x}));if(!sn.v){const a=d.find(x=>x.s==="GOOGL"),b=d.find(x=>x.s==="GOOG");if(a&&b&&a.cap&&b.cap&&Math.abs(a.cap-b.cap)/Math.max(a.cap,b.cap)<0.1){a.cap*=2;b.cap*=2}}return d}
-function showSnap(sn){render(snapData(sn),sn.noCap,sn.total);$("last").textContent="Dernières données : "+fmtTs(sn.ts);setMsg(blockInfo("heat")?"Quota atteint : dernière heatmap enregistrée affichée.":"Dernière actualisation conservée. Cliquez sur Actualiser pour la mettre à jour.")}
-function saveSnap(data,noCap,total){LS.s("snap",JSON.stringify({v:2,data,noCap,total,ts:Date.now()}));pushSync()}
-{const sn=jp("snap");if(sn&&sn.data)showSnap(sn)}
+const fm=(v,d=2)=>v.toFixed(d).replace(".",","),sg=(v,d=2)=>(v>0?"+":"")+fm(v,d);
+const TH="dark";
+function sess(z,a,b){const p=new Intl.DateTimeFormat("en-GB",{timeZone:z,weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()),g=t=>p.find(x=>x.type===t).value,m=+g("hour")*60+ +g("minute");return!["Sat","Sun"].includes(g("weekday"))&&m>=a&&m<b}
+function clk(){const f=z=>new Date().toLocaleTimeString("fr-FR",{timeZone:z,hour:"2-digit",minute:"2-digit",second:"2-digit"});
+ [["c1","Africa/Casablanca"],["c3","Europe/London"],["c2","America/New_York"]].forEach(([i,z])=>$(i).textContent=f(z));
+ $("d3").className="d"+(sess("Europe/London",480,990)?" on":"");$("d2").className="d"+(sess("America/New_York",570,960)?" on":"")}
+clk();setInterval(clk,1000);
 
-const SY="/api/state/",e8=new TextEncoder(),d8=new TextDecoder();
-const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
-const b64=u=>btoa(String.fromCharCode(...u)),ub=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
-async function ck(p,salt){const m=await crypto.subtle.importKey("raw",e8.encode(p),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:200000,hash:"SHA-256"},m,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
-const sid=async p=>hex(await crypto.subtle.digest("SHA-256",e8.encode("id|"+p)));
-function setSy(t,err){$("sy").textContent=t;$("sy").style.color=err?"#ef5a5d":""}
-function markKeys(){const k=["key_finnhub","fmpkey","lim_finnhub","lim_fmp"].map(LS.g).join("|");if(k!==LS.g("kh")){LS.s("kh",k);LS.s("kts",String(Date.now()))}}
-const SYN_KEYS=["key_finnhub","fmpkey"],SYN_PROV=["finnhub","fmp"];
-function pruneCal(){
- const ks=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("cal_")){const o=jp(k);ks.push([k,o&&o.t||0])}}}catch(e){}
- ks.sort((x,y)=>y[1]-x[1]);return ks;
+/* ===== Widgets TradingView ===== */
+function tv(box,name,cfg){
+ box.innerHTML="";
+ const w=document.createElement("div");w.className="tradingview-widget-container";w.style.cssText="height:100%;width:100%";
+ const c=document.createElement("div");c.className="tradingview-widget-container__widget";c.style.cssText="height:100%;width:100%";
+ const s=document.createElement("script");s.src="https://s3.tradingview.com/external-embedding/embed-widget-"+name+".js";s.async=true;s.text=JSON.stringify(cfg);
+ w.append(c,s);box.append(w);
 }
-function calState(){const o={};pruneCal().slice(0,6).forEach(([k])=>{const v=jp(k);if(v&&v.rows)o[k]=v});return o}
-function localState(){
- const keys={},lim={},use={};
- SYN_KEYS.forEach(k=>{const v=LS.g(k);if(v)keys[k]=v});
- SYN_PROV.forEach(k=>{const v=LS.g("lim_"+k);if(v)lim[k]=v;const o=jp("calls_"+k);if(o&&o.d)use[k]=o});
- const blk={};SYN_PROV.forEach(k=>{const v=+LS.g("blk_"+k)||0;if(v>Date.now())blk[k]=v});
- return{kts:+LS.g("kts")||0,prov:prov(),keys,lim,use,blk,snap:jp("snap"),cal:calState()};
+const TOP=[["AAPL","Apple",8.78],["NVDA","NVIDIA",7.42],["MSFT","Microsoft",6.93],["GOOGL","Alphabet",5.51],["AMZN","Amazon",4.88],["META","Meta",3.25],["TSLA","Tesla",3.23],["AVGO","Broadcom",2.59]];
+/* Poids estimés au 9 nov. 2026 (ChartRow, d’après les dépôts SEC du QQQ) : à mettre à jour dans TOP au besoin */
+let ck="";
+function chart(){
+ const s=$("sy").value,i=$("iv").value;if(ck===s+i)return;ck=s+i;LS.s("sy3",s);LS.s("iv3",i);
+ tv($("chart"),"advanced-chart",{autosize:true,symbol:s,interval:i,timezone:"Africa/Casablanca",theme:TH,style:"1",locale:"fr",allow_symbol_change:true,hide_side_toolbar:false,calendar:false,support_host:"https://www.tradingview.com"});
 }
-async function seal(p,st){
- const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
- const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},await ck(p,salt),e8.encode(JSON.stringify(st))));
- const out=new Uint8Array(28+ct.length);out.set(salt);out.set(iv,16);out.set(ct,28);return b64(out);
-}
-async function unseal(p,t){const u=ub(t);return JSON.parse(d8.decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:u.slice(16,28)},await ck(p,u.slice(0,16)),u.slice(28))))}
-/* Fusion additive : on ne supprime ni n'écrase jamais une valeur locale existante par du vide */
-function applyState(st){
- const had=!!$("key").value,newer=(st.kts||0)>(+LS.g("kts")||0);
- for(const k in (st.keys||{}))if(st.keys[k]&&(newer||!LS.g(k)))LS.s(k,st.keys[k]);
- for(const k in (st.lim||{}))if(st.lim[k]&&(newer||!LS.g("lim_"+k)))LS.s("lim_"+k,st.lim[k]);
- if(newer){LS.s("kts",String(st.kts));if(st.prov)LS.s("prov",st.prov)}
- for(const k in (st.use||{})){const l=jp("calls_"+k),r=st.use[k];if(r&&r.d&&(!l||r.d>l.d||(r.d===l.d&&r.n>l.n)))LS.s("calls_"+k,JSON.stringify(r))}
- for(const k in (st.blk||{})){if(st.blk[k]>(+LS.g("blk_"+k)||0))LS.s("blk_"+k,String(st.blk[k]))}
- for(const k in (st.cal||{})){if(!/^cal_/.test(k))continue;const l=jp(k),r=st.cal[k];if(r&&r.rows&&(!l||r.t>l.t))LS.s(k,JSON.stringify(r))}
- pruneCal().slice(12).forEach(([k])=>{try{localStorage.removeItem(k)}catch(e){}});
- if(!$("tab-cal").hidden)loadCal();
- LS.s("kh",SYN_KEYS.concat(SYN_PROV.map(k=>"lim_"+k)).map(LS.g).join("|"));
- $("prov").value=LS.g("prov")||"finnhub";
- if(document.activeElement!==$("key"))loadKey();
- syncProv();
- const cur=jp("snap");if(st.snap&&st.snap.data&&(!cur||st.snap.ts>cur.ts)){LS.s("snap",JSON.stringify(st.snap));showSnap(st.snap)}
- if(!had&&$("key").value&&$("dlg").open)$("dlg").close();
-}
-async function readRemote(p){
- const r=await fetch(SY+await sid(p));
- if(r.status===404)return null;
- if(!r.ok)throw new Error("srv");
- return unseal(p,await r.text());
-}
-const syncErr=e=>e instanceof TypeError?"Serveur de synchronisation injoignable. Les données restent sur cet appareil.":e&&e.message==="srv"?"Le serveur de synchronisation a renvoyé une erreur. Les données restent sur cet appareil.":"Phrase secrète incorrecte ou données illisibles.";
-let pushing=false;
-async function pushSync(){
- const p=LS.g("syncpass");if(!p||pushing)return;
- if(!window.crypto||!crypto.subtle)return setSy("Chiffrement indisponible : ouvrez l’app en HTTPS ou via http://localhost (pas via une adresse IP en http).",1);
- pushing=true;
- try{
-  markKeys();
-  let st=null;
-  try{st=await readRemote(p)}catch(e){return setSy(syncErr(e),1)}
-  if(st)applyState(st);
-  const loc=localState();
-  if(!Object.keys(loc.keys).length&&!loc.snap&&!Object.keys(loc.cal).length)return;
-  const r=await fetch(SY+await sid(p),{method:"PUT",body:await seal(p,loc)});
-  if(!r.ok)throw 0;
-  setSy("Synchronisé à "+fmtTs(Date.now())+".");
- }catch(e){setSy("Synchronisation indisponible : lancez le serveur (voir l’en-tête du fichier) et ouvrez l’app depuis http://localhost:8080. Les données restent sur cet appareil.",1)}
- finally{pushing=false}
-}
-async function pullSync(){
- const p=LS.g("syncpass");if(!p)return;
- if(!window.crypto||!crypto.subtle)return setSy("Chiffrement indisponible : ouvrez l’app en HTTPS ou via http://localhost (pas via une adresse IP en http).",1);
- let st;
- try{st=await readRemote(p)}catch(e){return setSy(syncErr(e),1)}
- if(!st){
-  if(LS.g("key_finnhub")||LS.g("fmpkey")||jp("snap")||pruneCal().length)return pushSync();
-  return setSy("Aucune donnée trouvée pour cette phrase secrète : vérifiez-la (majuscules comprises) ou utilisez le code de transfert.",1);
+{const a=LS.g("sy3"),b=LS.g("iv3");if(a&&[...$("sy").options].some(o=>o.value===a))$("sy").value=a;$("iv").value=b&&[...$("iv").options].some(o=>o.value===b)?b:"60"}
+$("sy").onchange=chart;$("iv").onchange=chart;chart();
+
+/* ===== Variations, impact et classement ===== */
+const mx=Math.max(...TOP.map(t=>t[2])),sw=TOP.reduce((a,t)=>a+t[2],0);
+$("wb").innerHTML=TOP.map((t,i)=>`<tr data-i="${i}"><td class="rk" id="rk${i}">${i+1}</td><td><b>${t[0]}</b><div class="sub">${t[1]}</div></td><td>${fm(t[2])} %<div class="bar"><i style="width:${t[2]/mx*100}%"></i></div></td><td><input data-i="${i}" inputmode="decimal" placeholder="—" aria-label="Variation de ${t[0]} en %"></td><td><div class="dv" id="dv${i}"></div><span id="ct${i}">—</span></td></tr>`).join("")+`<tr class="tot" id="sumrow"><td></td><td>Les 8</td><td>${fm(sw)} %</td><td></td><td id="sc">—</td></tr>`;
+$("k4").textContent=fm(sw,1)+" %";
+$("wn").textContent=`Les 8 valeurs pèsent environ ${fm(sw,1)} % du Nasdaq 100, les autres environ ${fm(100-sw,1)} %. Poids estimés (pas les poids officiels de Nasdaq). Impact = poids × variation de l’action.`;
+function calc(rs=true){
+ const V=TOP.map((t,i)=>parseFloat(document.querySelector(`#wb input[data-i="${i}"]`).value.replace(",","."))),C=V.map((v,i)=>isNaN(v)?NaN:TOP[i][2]/100*v),ok=C.filter(c=>!isNaN(c)),mxa=Math.max(.0001,...ok.map(Math.abs));
+ C.forEach((c,i)=>{const e=$("ct"+i),m=$("mi"+i);
+  if(isNaN(c)){e.textContent="—";e.className="";$("dv"+i).innerHTML="";if(m)m.textContent="";return}
+  e.textContent=sg(c,3)+" %";e.className=c>0?"pos":c<0?"neg":"";
+  $("dv"+i).innerHTML=`<i class="${c>=0?"up":"dn"}" style="${c>=0?"left":"right"}:50%;width:${Math.abs(c)/mxa*50}%"></i>`;
+  if(m){m.textContent="impact "+sg(c,2)+" %";m.className=c>0?"pos":c<0?"neg":""}});
+ const tot=ok.reduce((a,c)=>a+c,0),hi=ok.length?Math.max(...ok):0,lo=ok.length?Math.min(...ok):0,nm=x=>TOP[C.indexOf(x)][0]+" "+sg(x,2)+" %";
+ $("sc").textContent=ok.length?sg(tot,3)+" %":"—";$("sc").className=tot>0?"pos":tot<0?"neg":"";
+ $("k1").textContent=ok.length?sg(tot,3)+" %":"—";$("k1").className=tot>0?"pos":tot<0?"neg":"";
+ $("k2").textContent=hi>0?nm(hi):"—";$("k2").className=hi>0?"pos":"";
+ $("k3").textContent=lo<0?nm(lo):"—";$("k3").className=lo<0?"neg":"";
+ if(rs){
+  const o=TOP.map((_,i)=>i).sort((a,b)=>(isNaN(C[b])?-1:Math.abs(C[b]))-(isNaN(C[a])?-1:Math.abs(C[a]))||TOP[b][2]-TOP[a][2]);
+  o.forEach((i,r)=>{$("wb").insertBefore(document.querySelector(`#wb tr[data-i="${i}"]`),$("sumrow"));$("rk"+i).textContent=r+1;const t=$("mt"+i);if(t){t.style.order=r;$("bg"+i).textContent="#"+(r+1)}});
  }
- applyState(st);
- setSy("Synchronisé : clés, compteurs, dernière heatmap et dernier calendrier restaurés.");
 }
-$("sp").value=LS.g("syncpass")||"";
-$("sp").onchange=()=>{LS.s("syncpass",$("sp").value.trim());pullSync()};
-$("dlg").addEventListener("close",pushSync);
-$("xe").onclick=async()=>{
- const p=$("sp").value.trim();
- if(!p)return setSy("Saisissez d’abord la phrase secrète.",1);
- if(!window.crypto||!crypto.subtle)return setSy("Chiffrement indisponible : ouvrez l’app en HTTPS ou via http://localhost.",1);
- try{markKeys();const c="NSH1."+await seal(p,localState());$("xt").value=c;$("xt").select();
-  try{await navigator.clipboard.writeText(c);setSy("Code copié. Collez-le sur l’autre appareil.")}catch(e){setSy("Code généré : copiez-le manuellement.")}
- }catch(e){setSy("Impossible de générer le code.",1)}
+document.querySelectorAll("#wb input").forEach(e=>{e.oninput=()=>calc(false);e.onchange=()=>calc(true)});
+/* Variations du jour : point d’accès public de TradingView, sans clé (peut être bloqué selon le navigateur) */
+async function ld(){
+ $("ls").className="sub";$("ls").textContent="Synchro…";
+ try{
+  const j=await (await fetch("https://scanner.tradingview.com/america/scan",{method:"POST",body:JSON.stringify({symbols:{tickers:TOP.map(t=>"NASDAQ:"+t[0])},columns:["name","change"]})})).json();
+  let n=0;j.data.forEach(x=>{const i=TOP.findIndex(t=>t[0]===x.d[0]);if(i>=0&&typeof x.d[1]==="number"){document.querySelector(`#wb input[data-i="${i}"]`).value=x.d[1].toFixed(2).replace(".",",");n++}});
+  if(!n)throw 0;calc();$("ls").textContent="Synchronisé à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+ }catch(e){$("ls").className="sub err";$("ls").textContent="Synchro impossible : saisissez les variations."}
+}
+$("ld").onclick=ld;ld();setInterval(()=>{if(!document.hidden)ld()},60000);
+tv($("tape"),"ticker-tape",{symbols:TOP.map(t=>({proName:"NASDAQ:"+t[0],title:t[1]})),showSymbolLogo:true,colorTheme:TH,isTransparent:true,displayMode:"adaptive",locale:"fr"});
+/* Widgets chargés à la première ouverture de l’onglet */
+const INIT={
+ va:()=>tv($("qt"),"market-quotes",{width:"100%",height:"100%",symbolsGroups:[{name:"Top 8",originalName:"Top 8",symbols:TOP.map(t=>({name:"NASDAQ:"+t[0],displayName:t[1]}))}],showSymbolLogo:true,colorTheme:TH,isTransparent:true,locale:"fr"}),
+ mc:()=>{
+  $("mc").innerHTML=TOP.map((t,i)=>`<div class="mt" id="mt${i}"><div class="mh"><span><b>${t[0]}</b><span class="rkb" id="bg${i}">#${i+1}</span></span><span>${fm(t[2])} % du NDX<u id="mi${i}"></u></span></div><div id="mw${i}" style="height:190px"></div></div>`).join("");
+  TOP.forEach((t,i)=>tv($("mw"+i),"mini-symbol-overview",{symbol:"NASDAQ:"+t[0],width:"100%",height:"100%",locale:"fr",dateRange:"1D",colorTheme:TH,isTransparent:true,autosize:true,largeChartUrl:"",chartOnly:false}));
+  calc();
+ }
 };
-$("xi").onclick=async()=>{
- const p=$("sp").value.trim(),c=$("xt").value.trim().replace(/^NSH1\./,"").replace(/\s+/g,"");
- if(!p||!c)return setSy("Phrase secrète et code requis.",1);
- try{applyState(await unseal(p,c));setSy("Importé : clés, limites, compteurs, dernière heatmap et dernier calendrier restaurés.");$("xt").value=""}
- catch(e){setSy("Code ou phrase secrète incorrect.",1)}
-};
-/* Reprise de session : on récupère l'état des autres appareils au retour sur l'onglet */
-let lastPull=Date.now();
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&Date.now()-lastPull>6e4){lastPull=Date.now();pullSync()}});
-/* Le quota appartient à la clé, pas à l'appareil : les compteurs d'appels sont partagés */
-{const _ub=updateBudget;let lu=-1;updateBudget=function(){_ub();const u=usage();if(lu>=0&&u!==lu){clearTimeout(window._pt);window._pt=setTimeout(pushSync,15000)}lu=u}}
-try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
-/* ===== Calendrier des résultats (Nasdaq 100) ===== */
-const SEC={};Object.entries(NDX).forEach(([sc,l])=>l.split(",").forEach(t=>SEC[t]=sc));
-let calD=new Date(),calV="week";
-const iso=d=>d.toLocaleDateString("fr-CA");
-const HRS={bmo:"Avant ouverture",amc:"Après clôture",dmh:"En séance"};
-const nf=v=>v==null?"—":(v<0?"−":"")+Math.abs(v).toFixed(2).replace(".",",");
-const rv=v=>v==null?"—":v>=1e9?fmt(v/1e9,2)+" Md$":fmt(v/1e6,0)+" M$";
-function calRange(){
- const d=new Date(calD);
- if(calV==="month")return[new Date(d.getFullYear(),d.getMonth(),1),new Date(d.getFullYear(),d.getMonth()+1,0)];
- const m=new Date(d);m.setDate(d.getDate()-((d.getDay()+6)%7));const e=new Date(m);e.setDate(m.getDate()+6);return[m,e];
-}
-function calMove(u,n){const d=new Date(calD);if(u==="w")d.setDate(d.getDate()+7*n);else{d.setDate(1);d.setMonth(d.getMonth()+n)}calD=d}
-async function calFetch(a,b){
- const k="cal_"+prov()+a+b;
- key=$("key").value.trim();if(!key)throw new Error("Clé API manquante (Réglages).");
- let rows;
- if(prov()==="finnhub"){const r=await fh(`calendar/earnings?from=${a}&to=${b}`);rows=((r&&r.earningsCalendar)||[]).map(x=>({s:x.symbol,d:x.date,h:x.hour,q:x.quarter?`T${x.quarter} ${x.year}`:"—",ee:x.epsEstimate,ea:x.epsActual,re:x.revenueEstimate}))}
- else{const r=await get(`earnings-calendar?from=${a}&to=${b}`);rows=r.map(x=>({s:x.symbol,d:x.date,h:"",q:"—",ee:x.epsEstimated,ea:x.epsActual,re:x.revenueEstimated}))}
- const o={t:Date.now(),rows:rows.filter(x=>SEC[x.s])};LS.s(k,JSON.stringify(o));
- pruneCal().slice(12).forEach(([x])=>{try{localStorage.removeItem(x)}catch(e){}});
- pushSync();return o;
-}
-/* Affichage : toujours la dernière version enregistrée, jamais d’appel réseau automatique */
-function loadCal(){
- const[a,b]=calRange(),A=iso(a),B=iso(b);
- $("calt").textContent=a.toLocaleDateString("fr-FR",{day:"numeric",month:"short"})+" – "+b.toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:"numeric"});
- $("cald").value=iso(calD);$("calv").value=calV;
- const o=jp("cal_"+prov()+A+B);
- if(!o||!o.rows){$("calb").innerHTML="";$("cals").textContent="";$("calm").textContent="Aucune donnée enregistrée pour cette période. "+(blockInfo("cal")?"Actualisation impossible pour l’instant (quota atteint).":"Cliquez sur Actualiser pour la charger.");return}
- $("calm").textContent="Dernières données : "+fmtTs(o.t)+(blockInfo("cal")?" (quota atteint, actualisation différée).":".");
- const cap={};(lastData||[]).forEach(d=>cap[d.s]=d.cap);
- const by={};o.rows.forEach(r=>(by[r.d]=by[r.d]||[]).push(r));
- const days=Object.keys(by).sort();
- const top=o.rows.filter(r=>cap[r.s]>1).sort((x,y)=>cap[y.s]-cap[x.s]).slice(0,5).map(r=>r.s);
- const busyD=days.reduce((m,d)=>!m||by[d].length>by[m].length?d:m,"");
- $("cals").textContent=days.length?`${o.rows.length} publications du Nasdaq 100 sur la période`+(busyD?`, jour le plus chargé : ${new Date(busyD+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric"})} (${by[busyD].length})`:"")+(top.length?`. Plus grosses capitalisations : ${top.join(", ")}.`:"."):"Aucune publication du Nasdaq 100 sur cette période.";
- $("calb").innerHTML=days.map(d=>{
-  const rs=by[d].sort((x,y)=>(cap[y.s]||0)-(cap[x.s]||0)||x.s.localeCompare(y.s));
-  return `<tr class="dayh${d===iso(new Date())?" today":""}"><td colspan="7">${new Date(d+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})} (${rs.length})</td></tr>`+
-  rs.map(r=>`<tr><td><b>${r.s}</b></td><td>${SEC[r.s]}</td><td>${HRS[r.h]||"—"}</td><td>${r.q}</td><td>${nf(r.ee)}</td><td>${nf(r.ea)}</td><td>${rv(r.re)}</td></tr>`).join("")}).join("");
-}
-async function calRefresh(){
- if(calBusy||busy)return;
- if(blockInfo("cal")){loadCal();$("calm").textContent=quotaMsg("cal");applyQuotaUI();return}
- const[a,b]=calRange();calBusy=true;applyQuotaUI();$("calm").textContent="Actualisation du calendrier…";
- try{await calFetch(iso(a),iso(b));calBusy=false;loadCal();$("calm").textContent="Mis à jour à "+fmtHM(Date.now())+"."}
- catch(e){calBusy=false;loadCal();const net=e instanceof TypeError;
-  $("calm").textContent=(/Limite/.test(e.message)&&blockInfo("cal")?quotaMsg("cal"):e.message+(net?" (réseau ou CORS)":"")+" La dernière version enregistrée reste affichée.")}
- calBusy=false;updateBudget();
-}
-$("calgo").onclick=calRefresh;
-document.querySelectorAll("[data-m]").forEach(bt=>bt.onclick=()=>{const m=bt.dataset.m;if(m==="t")calD=new Date();else calMove(m[0],+m.slice(1));loadCal()});
-$("cald").onchange=()=>{if($("cald").value){calD=new Date($("cald").value+"T12:00:00");loadCal()}};
-$("calv").onchange=()=>{calV=$("calv").value;loadCal()};
+/* ===== Calendrier : dates à tenir à jour ici ===== */
+const EARN=[
+ {s:"NVDA",n:"NVIDIA",d:"2026-11-17",h:"Après clôture, appel à 17 h (heure de New York)",q:"T3 exercice 2027"},
+ {s:"AVGO",n:"Broadcom",d:"2026-12-09",h:"Après clôture, appel à 14 h (heure du Pacifique)",q:"T4 exercice 2026"},
+ {s:"AAPL",n:"Apple"},{s:"MSFT",n:"Microsoft"},{s:"GOOGL",n:"Alphabet"},{s:"AMZN",n:"Amazon"},{s:"META",n:"Meta"},{s:"TSLA",n:"Tesla"}
+];
+$("cb").innerHTML=EARN.slice().sort((a,b)=>(a.d||"9").localeCompare(b.d||"9")).map(r=>{
+ if(!r.d)return `<tr><td class="sub">Date non annoncée</td><td><b>${r.s}</b></td><td>${r.n}</td><td class="sub">Résultats attendus fin janvier – début février</td><td>—</td></tr>`;
+ const j=Math.round((new Date(r.d+"T12:00:00")-Date.now())/864e5);
+ return `<tr><td>${new Date(r.d+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</td><td><b>${r.s}</b></td><td>${r.n}</td><td>${r.q} : ${r.h}</td><td>${j<=0?"aujourd’hui":"dans "+j+" j"}</td></tr>`}).join("");
 
-syncProv();
-/* Chaque session : on affiche tout de suite le dernier état local, puis on récupère celui des autres appareils (heatmap, calendrier, compteurs) */
-if(!$("key").value){$("dlg").showModal();if(!$("sp").value)$("sp").focus()}
-pullSync().finally(()=>{updateBudget();if(!$("tab-cal").hidden)loadCal()});
-{let day=today();setInterval(()=>{if(today()!==day){day=today();updateBudget()}else applyQuotaUI()},1000)}
-</script>
-<!-- Code du serveur de synchronisation (ignoré par le navigateur). Lancer : node -e "eval(require('fs').readFileSync('index.html','utf8').split('//'+'SRV')[1])" -->
-<script type="text/x-server">
-//SRV
-const http=require("http"),fs=require("fs"),path=require("path");
-const D=path.join(process.cwd(),"sync"),P=process.env.PORT||8080;fs.mkdirSync(D,{recursive:true});
-http.createServer((q,r)=>{
- const m=q.url.match(/^\/api\/state\/([0-9a-f]{64})$/);
- if(m){const f=path.join(D,m[1]);
-  if(q.method==="GET")fs.readFile(f,(e,b)=>{r.writeHead(e?404:200,{"Content-Type":"text/plain"});r.end(e?"":b)});
-  else if(q.method==="PUT"){let n=0,c=[],big=false;
-   q.on("data",x=>{n+=x.length;if(n>1e6){big=true;r.writeHead(413).end();q.destroy()}else c.push(x)});
-   q.on("end",()=>{if(!big)fs.writeFile(f,Buffer.concat(c),e=>r.writeHead(e?500:204).end())})}
-  else r.writeHead(405).end();
-  return}
- fs.readFile(path.join(process.cwd(),"index.html"),(e,b)=>{r.writeHead(e?404:200,{"Content-Type":"text/html; charset=utf-8"});r.end(e?"":b)});
-}).listen(P,()=>console.log("http://localhost:"+P));
-//SRV
+document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{
+ const k=b.dataset.t;
+ document.querySelectorAll("[data-t]").forEach(x=>x.setAttribute("aria-selected",x===b));
+ document.querySelectorAll("main>section").forEach(x=>x.hidden=x.id!=="t-"+k);
+ if(INIT[k]){INIT[k]();delete INIT[k]}
+});
 </script>
 </body>
 </html>
